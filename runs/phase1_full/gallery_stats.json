@@ -1,0 +1,26 @@
+{
+  "total_tiles": 934,
+  "road_tiles": 806,
+  "noroad_tiles": 128,
+  "noroad_correct_pct": 83.59375,
+  "mean_pertile_iou": 0.5723202864098483,
+  "median_pertile_iou": 0.6229189094127706,
+  "buckets": {
+    "Excellent (>=0.70)": {
+      "count": 259,
+      "pct": 32.13399503722084
+    },
+    "Good (0.55-0.70)": {
+      "count": 265,
+      "pct": 32.878411910669975
+    },
+    "Fair (0.40-0.55)": {
+      "count": 133,
+      "pct": 16.501240694789082
+    },
+    "Poor (<0.40)": {
+      "count": 149,
+      "pct": 18.4863523573201
+    }
+  }
+}

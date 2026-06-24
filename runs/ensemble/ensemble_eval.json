@@ -1,0 +1,96 @@
+{
+  "n_val": 934,
+  "members": [
+    {
+      "arch": "unet",
+      "encoder": "resnet34",
+      "ckpt": "C:/Users/VISWAS/route_data/runs/phase1_full/best.pt"
+    },
+    {
+      "arch": "deeplabv3plus",
+      "encoder": "resnet34",
+      "ckpt": "C:/Users/VISWAS/route_data/runs/phase1_dlv3p/best.pt"
+    },
+    {
+      "arch": "unetpp",
+      "encoder": "resnet34",
+      "ckpt": "C:/Users/VISWAS/route_data/runs/phase1_unetpp/best.pt"
+    }
+  ],
+  "tta_views": 8,
+  "threshold_grid": [
+    0.2,
+    0.7,
+    21
+  ],
+  "baseline": {
+    "iou": 0.6003958256889559,
+    "dice": 0.7503091623355004,
+    "relaxed": 0.7652180544724679,
+    "thr": 0.5,
+    "tta": false
+  },
+  "solo": [
+    {
+      "member": 0,
+      "arch": "unet",
+      "encoder": "resnet34",
+      "thr": 0.475,
+      "iou": 0.6054080999147822,
+      "dice": 0.7542108451389006
+    },
+    {
+      "member": 1,
+      "arch": "deeplabv3plus",
+      "encoder": "resnet34",
+      "thr": 0.475,
+      "iou": 0.5976401678643957,
+      "dice": 0.748153657983294
+    },
+    {
+      "member": 2,
+      "arch": "unetpp",
+      "encoder": "resnet34",
+      "thr": 0.45,
+      "iou": 0.5871615614145879,
+      "dice": 0.7398888376445673
+    }
+  ],
+  "equal_weight_all": {
+    "members": [
+      0,
+      1,
+      2
+    ],
+    "thr": 0.475,
+    "iou": 0.6040270216913451,
+    "dice": 0.753138212166073
+  },
+  "greedy_selection": [
+    {
+      "added": 0,
+      "chosen": [
+        0
+      ],
+      "iou": 0.6054080999147822,
+      "dice": 0.7542108451389006,
+      "thr": 0.475
+    }
+  ],
+  "ensemble": {
+    "chosen": [
+      0
+    ],
+    "thr": 0.475,
+    "iou": 0.6054080999147822,
+    "dice": 0.7542108451389006,
+    "relaxed": 0.7697354044983961
+  },
+  "ensemble_post": {
+    "iou": 0.6026715862182472,
+    "dice": 0.7520836974970582,
+    "relaxed": 0.7683321832632032
+  },
+  "gain_iou_pts": 0.22757605292913485,
+  "gain_relaxed_pts": 0.3114128790735249
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "route-web",
+      "runtimeExecutable": "C:/Users/VISWAS/anaconda3/envs/route/python.exe",
+      "runtimeArgs": ["src/server.py", "8766"],
+      "port": 8766
+    }
+  ]
+}

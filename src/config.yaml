@@ -1,0 +1,47 @@
+# Phase 1 — occlusion-robust road segmentation (DeepGlobe, REAL data)
+project: route-resilience-phase1
+seed: 42
+
+data:
+  # folder containing DeepGlobe train tiles: {id}_sat.jpg + {id}_mask.png
+  # (kept OUTSIDE the OneDrive-synced project dir so ~8GB isn't uploaded to the cloud)
+  train_dir: C:/Users/VISWAS/route_data/deepglobe/train
+  mass_root: C:/Users/VISWAS/route_data/massachusetts   # NOTE: dataset deleted to save disk; re-download to use --datasets deepglobe+mass
+  train_split: 0.85          # rest used as held-out validation (real, never seen in training)
+  road_thresh: 127           # DeepGlobe mask: road pixels are white (255) -> binarize > 127
+  crop_size: 512             # 1024x1024 tiles -> random 512 crops (preserves native resolution)
+  num_workers: 4
+  limit: null                # set an int to train on a subset for a fast first loop
+
+model:
+  arch: unet                 # unet | unetpp | deeplabv3plus
+  encoder: resnet34
+  encoder_weights: imagenet
+  in_channels: 3
+  classes: 1                 # binary road / not-road (model outputs logits)
+
+train:
+  epochs: 30
+  batch_size: 8              # smoke-tested: ~2.2GB peak on the 6GB 3050 with AMP (room to spare)
+  lr: 0.0003
+  weight_decay: 0.00001
+  amp: true                  # mixed precision -> fits 6GB VRAM
+  scheduler: cosine
+  early_stop_patience: 8
+  device: cuda
+  out_dir: C:/Users/VISWAS/route_data/runs/phase1   # local (non-OneDrive) — avoids re-syncing 85MB checkpoints each epoch
+
+loss:
+  dice: 0.5
+  bce: 0.3
+  connectivity: 0.2
+
+augment:
+  occlusion_prob: 0.5        # synthetic-occlusion augmentation on REAL images
+  occlusion_max_holes: 8
+  occlusion_max_frac: 0.125  # max patch side = frac * crop_size
+
+eval:
+  threshold: 0.475          # tuned on real held-out val (IoU-optimal); paired with D4 TTA at inference
+  relaxed_buffer_px: 3       # tolerance buffer for Length-Complete / Relaxed IoU
+  occlusion_eval_frac: 0.18  # controlled occlusion patch size for occlusion-recall measurement

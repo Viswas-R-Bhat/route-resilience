@@ -1,0 +1,146 @@
+{
+  "stem": "blr_res",
+  "raw_graph": {
+    "nodes": 1107,
+    "edges": 823,
+    "components": 297,
+    "lcc_nodes": 255,
+    "lcc_fraction": 0.2304,
+    "total_length_px": 117113.0
+  },
+  "connectivity": {
+    "components_before": 297,
+    "components_after": 160,
+    "components_merged": 137,
+    "lcc_frac_before": 0.2304,
+    "lcc_frac_after": 0.355,
+    "healed_edges": 137
+  },
+  "healed_bridges": 137,
+  "gatekeepers": [
+    {
+      "node": 752,
+      "betweenness": 0.0736,
+      "tier": "critical"
+    },
+    {
+      "node": 745,
+      "betweenness": 0.0643,
+      "tier": "critical"
+    },
+    {
+      "node": 705,
+      "betweenness": 0.062,
+      "tier": "critical"
+    },
+    {
+      "node": 658,
+      "betweenness": 0.062,
+      "tier": "critical"
+    },
+    {
+      "node": 699,
+      "betweenness": 0.0619,
+      "tier": "critical"
+    },
+    {
+      "node": 677,
+      "betweenness": 0.0617,
+      "tier": "critical"
+    },
+    {
+      "node": 508,
+      "betweenness": 0.0615,
+      "tier": "critical"
+    },
+    {
+      "node": 639,
+      "betweenness": 0.061,
+      "tier": "critical"
+    },
+    {
+      "node": 476,
+      "betweenness": 0.0512,
+      "tier": "critical"
+    },
+    {
+      "node": 423,
+      "betweenness": 0.0498,
+      "tier": "critical"
+    }
+  ],
+  "resilience": [
+    {
+      "step": 0,
+      "removed": null,
+      "betweenness": null,
+      "resilience_index": 1.0,
+      "global_efficiency": 0.000108,
+      "lcc_fraction": 1.0
+    },
+    {
+      "step": 1,
+      "removed": 752,
+      "betweenness": 0.0736,
+      "resilience_index": 0.8196,
+      "global_efficiency": 8.9e-05,
+      "lcc_fraction": 0.542
+    },
+    {
+      "step": 2,
+      "removed": 1000,
+      "betweenness": 0.0216,
+      "resilience_index": 0.7408,
+      "global_efficiency": 8e-05,
+      "lcc_fraction": 0.4555
+    },
+    {
+      "step": 3,
+      "removed": 197,
+      "betweenness": 0.0157,
+      "resilience_index": 0.686,
+      "global_efficiency": 7.4e-05,
+      "lcc_fraction": 0.2799
+    },
+    {
+      "step": 4,
+      "removed": 723,
+      "betweenness": 0.0052,
+      "resilience_index": 0.6625,
+      "global_efficiency": 7.2e-05,
+      "lcc_fraction": 0.2265
+    },
+    {
+      "step": 5,
+      "removed": 517,
+      "betweenness": 0.0031,
+      "resilience_index": 0.6328,
+      "global_efficiency": 6.8e-05,
+      "lcc_fraction": 0.1934
+    },
+    {
+      "step": 6,
+      "removed": 237,
+      "betweenness": 0.0028,
+      "resilience_index": 0.6127,
+      "global_efficiency": 6.6e-05,
+      "lcc_fraction": 0.1934
+    },
+    {
+      "step": 7,
+      "removed": 979,
+      "betweenness": 0.0027,
+      "resilience_index": 0.5927,
+      "global_efficiency": 6.4e-05,
+      "lcc_fraction": 0.1603
+    },
+    {
+      "step": 8,
+      "removed": 227,
+      "betweenness": 0.0016,
+      "resilience_index": 0.5758,
+      "global_efficiency": 6.2e-05,
+      "lcc_fraction": 0.145
+    }
+  ]
+}

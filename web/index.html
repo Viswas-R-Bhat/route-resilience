@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Route Resilience — Urban Mobility Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=9" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="lib/echarts.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "./lib/three.module.js",
+  "three/addons/controls/OrbitControls.js": "./lib/OrbitControls.js"
+} }
+</script>
+</head>
+<body>
+  <!-- animated space / launch background -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <!-- top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-mark" aria-hidden="true"><span></span></div>
+      <div>
+        <div class="eyebrow">Geospatial Mobility Intelligence</div>
+        <h1>Route Resilience</h1>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <label class="region-select">
+        <span>Saved</span>
+        <select id="region" aria-label="Select region"></select>
+      </label>
+      <div id="status-pill" class="status-pill">
+        <span class="dot"></span><span id="status-text">STABLE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPI row -->
+  <section class="kpis" id="kpis" aria-label="Key metrics"></section>
+
+  <!-- main grid -->
+  <main class="grid">
+    <section class="card scene-card">
+      <div class="card-head">
+        <h2>Live Road Network · Criticality</h2>
+        <div class="scene-tools">
+          <button id="toggle-rotate" class="ghost-btn" aria-pressed="true">Auto-orbit: On</button>
+          <button id="toggle-heat" class="ghost-btn" aria-pressed="true">Criticality heat: On</button>
+          <button id="reset-view" class="ghost-btn">Reset view</button>
+        </div>
+      </div>
+      <div class="scene-wrap">
+        <canvas id="scene-canvas" aria-label="3D road network visualization"></canvas>
+        <div id="map" aria-label="Geolocated road network map"></div>
+        <div class="map-search">
+          <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="loc-input" type="text" placeholder="Analyze any location — place name or lat, lon" autocomplete="off" />
+          <select id="loc-size" aria-label="Area size" title="Area size">
+            <option value="8">1.2 km</option>
+            <option value="12">1.8 km</option>
+            <option value="16">2.4 km</option>
+          </select>
+          <button id="loc-go" class="ghost-btn">Analyze</button>
+        </div>
+        <div class="scene-legend">
+          <span><i class="sw crit"></i>Gatekeeper</span>
+          <span><i class="sw imp"></i>Important</span>
+          <span><i class="sw norm"></i>Normal</span>
+          <span><i class="sw heal"></i>Healed gap</span>
+          <span><i class="sw off"></i>Disabled</span>
+          <span><i class="sw route"></i>Active route</span>
+        </div>
+        <div class="scene-hint">Drag to orbit · scroll to zoom · click a node to disable it</div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="card stress-card">
+        <div class="card-head"><h2>Stress Test</h2></div>
+        <p class="muted sm">Disable Gatekeeper intersections (flood / accident / closure) and watch the network degrade.</p>
+        <label class="slider-label" for="ablate">Disable top-<span id="ablate-n">0</span> gatekeepers</label>
+        <input type="range" id="ablate" min="0" max="8" value="0" step="1" autocomplete="off" />
+        <div class="resilience-readout">
+          <div class="ri-num" id="ri-num">1.00</div>
+          <div class="ri-meta"><span class="muted sm">Resilience Index</span><span id="ri-status" class="ri-status">STABLE</span></div>
+        </div>
+        <div class="resilience-readout route-readout">
+          <div class="ri-num tt-num" id="tt-num">+0%</div>
+          <div class="ri-meta"><span class="muted sm">Sector route impact</span><span id="tt-sub" class="ri-status">baseline</span></div>
+        </div>
+        <button id="reset-stress" class="ghost-btn full">Reset stress test</button>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Network Degradation</h2></div>
+        <div id="resilience-chart" class="chart"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Gatekeeper Nodes</h2></div>
+        <div id="gatekeepers" class="gk-list" role="list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <span>Occlusion-robust extraction → topological healing → graph criticality → resilience stress test</span>
+    <span class="muted">Real satellite imagery · DeepGlobe + Esri World Imagery · occlusion-robust extraction</span>
+  </footer>
+
+  <div id="loader" class="loader"><div class="ring"></div><span>Initializing mission control…</span></div>
+
+  <script type="module" src="app.js?v=9"></script>
+</body>
+</html>
