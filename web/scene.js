@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const SIZE = 10;                 // world size of the satellite plane
 const TIER = { critical: 0xff6b5e, important: 0xf0b75e, normal: 0x5ec8a0 };
-const HEAL = 0xf5c06b, CANOPY = 0x7ed957, OFF = 0x5a6172;
+const HEAL = 0xf5c06b, CANOPY = 0x7ed957, OFF = 0x5a6172, FLOOD = 0x3b9eff;
 const healColor = e => e.hk === "canopy" ? CANOPY : HEAL;
 // confidence -> glow: inferred bridges glow dimmer (geom=med, canopy=low, saturated-canopy=vlow)
 const CONF_GLOW = { high: .55, med: .5, low: .32, vlow: .18 };
@@ -180,27 +180,29 @@ export class RoadScene {
     const c = new THREE.Color();
     return c.setHSL((1 - Math.min(1, t)) * 0.42, 0.62, 0.58).getHex(); // green(0.42)->coral(0), refined
   }
-  setHeat(on) { this.heat = on; this.applyState(this.disabled); }
+  setHeat(on) { this.heat = on; this.applyState(this.disabled || new Set(), this.flooded); }
   setAutoRotate(on) { this.controls.autoRotate = on; }
   resetView() { this.cam.position.set(0, 9, 9); this.controls.target.set(0, 0, 0); this.controls.update(); }
 
-  applyState(disabled) {
-    this.disabled = disabled;
+  applyState(disabled, flooded = new Set()) {
+    this.disabled = disabled; this.flooded = flooded;
     for (const id in this.nodeMap) {
-      const m = this.nodeMap[id], off = disabled.has(+id);
-      m.material.color.set(off ? OFF : m.userData.baseColor);
-      m.material.emissive.set(off ? 0x111620 : m.userData.baseColor);
-      m.material.emissiveIntensity = off ? .1 : (m.userData.tier === "normal" ? .35 : .9);
-      m.scale.setScalar(off ? .7 : 1);
+      const m = this.nodeMap[id], i = +id, fl = flooded.has(i), off = disabled.has(i);
+      const col = fl ? FLOOD : (off ? OFF : m.userData.baseColor);
+      m.material.color.set(col);
+      m.material.emissive.set(fl ? FLOOD : (off ? 0x111620 : m.userData.baseColor));
+      m.material.emissiveIntensity = fl ? .8 : (off ? .1 : (m.userData.tier === "normal" ? .35 : .9));
+      m.scale.setScalar(off && !fl ? .7 : 1);
     }
     for (const e of this.edgeObjs) {
+      const fl = flooded.has(e.userData.u) || flooded.has(e.userData.v);
       const dead = disabled.has(e.userData.u) || disabled.has(e.userData.v);
       const base = e.userData.healed ? healColor(e.userData) : this._heatColor(this.heat ? e.userData.t : 0.0);
-      e.material.color.set(dead ? OFF : base);
-      e.material.emissive.set(dead ? 0x0b0f18 : base);
-      e.material.emissiveIntensity = dead ? .05
-        : (e.userData.healed ? healGlow(e.userData) : (this.heat ? .35 + e.userData.t * .6 : .3));
-      e.material.opacity = dead ? .5 : 1; e.material.transparent = dead;
+      e.material.color.set(fl ? FLOOD : (dead ? OFF : base));
+      e.material.emissive.set(fl ? FLOOD : (dead ? 0x0b0f18 : base));
+      e.material.emissiveIntensity = fl ? .7 : (dead ? .05
+        : (e.userData.healed ? healGlow(e.userData) : (this.heat ? .35 + e.userData.t * .6 : .3)));
+      e.material.opacity = dead && !fl ? .5 : 1; e.material.transparent = dead && !fl;
     }
   }
 

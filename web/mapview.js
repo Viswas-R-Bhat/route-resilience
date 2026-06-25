@@ -3,7 +3,7 @@
  * Renders the real criticality graph at true lat/lon over a dark basemap + the
  * satellite imagery the model actually ran on. Requires global L (Leaflet). */
 const TIER = { critical: "#ff6b5e", important: "#f0b75e", normal: "#5ec8a0" };
-const HEAL = "#f5c06b", CANOPY = "#7ed957", OFF = "#5a6172";
+const HEAL = "#f5c06b", CANOPY = "#7ed957", OFF = "#5a6172", FLOOD = "#3b9eff";
 const healColor = e => e.healed ? (e.hk === "canopy" ? CANOPY : HEAL) : null;
 // confidence -> opacity: inferred bridges look fainter (visible=high, geom=med, canopy=low, saturated-canopy=vlow)
 const CONF_OP = { high: .9, med: .85, low: .66, vlow: .48 };
@@ -58,17 +58,19 @@ export class MapView {
     setTimeout(() => this.map.invalidateSize(), 60);
   }
 
-  applyState(disabled) {
-    this.disabled = disabled;
+  applyState(disabled, flooded = new Set()) {
+    this.disabled = disabled; this.flooded = flooded;
     for (const id in this.nodeMarkers) {
-      const m = this.nodeMarkers[id], off = disabled.has(+id);
-      m.setStyle({ fillColor: off ? OFF : m.userData.base, fillOpacity: off ? .4 : .95 });
-      m.setRadius(off ? m.userData.r * .7 : m.userData.r);
+      const m = this.nodeMarkers[id], i = +id, fl = flooded.has(i), off = disabled.has(i);
+      const fill = fl ? FLOOD : (off ? OFF : m.userData.base);
+      m.setStyle({ fillColor: fill, fillOpacity: fl ? .9 : (off ? .4 : .95) });
+      m.setRadius(off && !fl ? m.userData.r * .7 : m.userData.r);
     }
     for (const e of this.edgeObjs) {
+      const fl = flooded.has(e.userData.u) || flooded.has(e.userData.v);
       const dead = disabled.has(e.userData.u) || disabled.has(e.userData.v);
       const base = healColor(e.userData) || (this.heat ? this._heat(e.userData.t) : "#5ec8a0");
-      e.setStyle({ color: dead ? OFF : base, opacity: dead ? .4 : healOpacity(e.userData) });
+      e.setStyle({ color: fl ? FLOOD : (dead ? OFF : base), opacity: fl ? .85 : (dead ? .4 : healOpacity(e.userData)) });
     }
   }
 
@@ -90,6 +92,6 @@ export class MapView {
     if (this.data) { const b = this.data.bounds; this.map.fitBounds([[b.south, b.west], [b.north, b.east]]); }
   }
   setAutoRotate() { /* n/a for map */ }
-  setHeat(on) { this.heat = on; if (this.disabled) this.applyState(this.disabled); }
+  setHeat(on) { this.heat = on; if (this.disabled) this.applyState(this.disabled, this.flooded); }
   invalidate() { this.map.invalidateSize(); }
 }

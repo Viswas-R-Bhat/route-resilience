@@ -9,7 +9,7 @@
   /* warm sunrise accent system (replaces the neon blues) */
   --ember:#ff8a5b; --gold:#f5c06b; --amber:#f0b75e;
   /* refined, low-neon status colours */
-  --good:#5ec8a0; --warn:#f0b75e; --crit:#ff6b5e; --healed:#f5c06b; --canopy:#7ed957; --off:#5a6172;
+  --good:#5ec8a0; --warn:#f0b75e; --crit:#ff6b5e; --healed:#f5c06b; --canopy:#7ed957; --flood:#3b9eff; --off:#5a6172;
   --brand:linear-gradient(135deg,#ff8a5b 0%,#f5c06b 100%);
   /* elevation (dimensional layering) */
   --e1:0 1px 2px rgba(0,0,0,.45);
@@ -124,7 +124,12 @@ body{
 .scene-legend i.sw{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:middle}
 .sw.crit{background:var(--crit)} .sw.imp{background:var(--amber)}
 .sw.norm{background:var(--good)} .sw.heal{background:var(--healed)} .sw.off{background:var(--off)}
-.sw.canopy{background:var(--canopy)}
+.sw.canopy{background:var(--canopy)} .sw.flood{background:var(--flood)}
+.flood-row{margin-top:14px} .flood-val{color:var(--flood);font-weight:600;font-variant-numeric:tabular-nums}
+.flood-range{accent-color:var(--flood)}
+.flood-sub{margin-top:4px;color:var(--flood)}
+.sm-btn{font-size:.66rem;padding:3px 9px;margin-left:auto}
+.card-head{display:flex;align-items:center;gap:10px}
 .sw.route{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6)}
 .scene-hint{position:absolute;right:16px;top:16px;font-size:.7rem;color:var(--faint);
   background:rgba(6,8,13,.55);padding:7px 12px;border-radius:10px;border:1px solid var(--border);backdrop-filter:blur(10px)}

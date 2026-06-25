@@ -10,6 +10,7 @@ __pycache__/
 runs/geo/*_sat.png
 runs/geo/*_mask.png
 runs/geo/*_pipeline.png
+runs/geo/*_dem.npy
 runs/**/*.gpickle
 runs/**/*.pt
 

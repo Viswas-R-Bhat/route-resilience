@@ -1,10 +1,10 @@
-import { startBackground, RoadScene } from "./scene.js?v=5";
-import { MapView } from "./mapview.js?v=5";
+import { startBackground, RoadScene } from "./scene.js?v=6";
+import { MapView } from "./mapview.js?v=6";
 
 const $ = s => document.querySelector(s);
 const TIERCOL = { critical: "#ff6b5e", important: "#f0b75e", normal: "#5ec8a0" };
 
-let DATA, ADJ, IDS, NTOTAL, BASE_EFF, ABL_ORDER, topN = 0;
+let DATA, ADJ, IDS, NTOTAL, BASE_EFF, ABL_ORDER, topN = 0, floodStep = 0, gkMode = "bc";
 let OD = null, BASE_OD_PATH = [], SECTOR = [];   // representative route + sector pairs for travel-time
 const manual = new Set();           // nodes disabled by click (on top of slider)
 let scene, mapView = null, activeView, chart;
@@ -42,7 +42,12 @@ function lccFraction(disabled) {
   }
   return best / NTOTAL;
 }
-const disabledSet = () => new Set([...ABL_ORDER.slice(0, topN), ...manual]);
+function floodSubmerged() {                          // road nodes below the current waterline
+  if (floodStep <= 0 || !DATA.flood || !DATA.flood[floodStep]) return [];
+  const lvl = DATA.flood[floodStep].water_level;
+  return DATA.nodes.filter(n => n.elev != null && n.elev <= lvl).map(n => n.id);
+}
+const disabledSet = () => new Set([...ABL_ORDER.slice(0, topN), ...manual, ...floodSubmerged()]);
 
 /* ---------- shortest paths (rerouting + travel-time, PS-4 Phase IV) ---------- */
 function dijkstra(src, disabled) {
@@ -104,9 +109,12 @@ function kpi(label, val, sub, accent) {
     <div class="k-val">${val}</div><div class="k-sub">${sub}</div></div>`;
 }
 function render() {
+  const fset = new Set(floodSubmerged());
   const dis = disabledSet();
-  // slider-only (no manual clicks) -> use the precomputed Python resilience curve: instant at any graph size
-  const pre = (manual.size === 0 && DATA.resilience && DATA.resilience[topN]) ? DATA.resilience[topN] : null;
+  // when ONE stressor is active, use the matching precomputed Python curve (instant at any size)
+  let pre = null;
+  if (floodStep > 0 && topN === 0 && manual.size === 0 && DATA.flood && DATA.flood[floodStep]) pre = DATA.flood[floodStep];
+  else if (floodStep === 0 && manual.size === 0 && DATA.resilience && DATA.resilience[topN]) pre = DATA.resilience[topN];
   const R = pre ? pre.resilience_index : (BASE_EFF > 0 ? efficiency(dis) / BASE_EFF : 0);
   const lcc = lccFraction(dis);   // absolute connectivity (cheap BFS) — NOT the curve's baseline-ratio
   const status = R > 0.7 ? "STABLE" : R > 0.4 ? "DEGRADED" : "CRITICAL";
@@ -127,7 +135,17 @@ function render() {
   const dot = $("#status-pill .dot"); dot.style.background = col; dot.style.boxShadow = `0 0 12px ${col}`;
   $("#ablate-n").textContent = topN;
 
-  activeView.applyState(dis);
+  // flood readout (water level + submerged share)
+  const fm = $("#flood-m"), fsub = $("#flood-sub");
+  if (fm && DATA.flood && DATA.flood.length) {
+    if (floodStep > 0) {
+      const f = DATA.flood[floodStep];
+      fm.textContent = `${f.water_level.toFixed(0)} m`;
+      fsub.textContent = `${Math.round(f.submerged_frac * 100)}% of roads submerged · resilience ${f.resilience_index.toFixed(2)}`;
+    } else { fm.textContent = "dry"; fsub.textContent = ""; }
+  }
+
+  activeView.applyState(dis, fset);
 
   // ---- rerouting + travel-time increase (PS-4 Phase IV) ----
   const distCache = {};
@@ -166,11 +184,16 @@ function render() {
 }
 
 function renderGatekeepers() {
-  $("#gatekeepers").innerHTML = DATA.gatekeepers.map((g, i) =>
-    `<div class="gk-row" role="listitem" data-id="${g.id}" tabindex="0">
+  const svc = gkMode === "svc" && DATA.service_gatekeepers && DATA.service_gatekeepers.length;
+  const list = svc ? DATA.service_gatekeepers : DATA.gatekeepers;
+  $("#gatekeepers").innerHTML = list.map((g, i) => {
+    const id = svc ? g.node : g.id;
+    const metric = svc ? `SC ${(+g.service_crit).toFixed(2)}` : `BC ${(+g.bc).toFixed(3)}`;
+    return `<div class="gk-row" role="listitem" data-id="${id}" tabindex="0">
        <span class="gk-rank">#${i + 1}</span>
        <span class="gk-dot" style="background:${TIERCOL[g.tier]};box-shadow:0 0 10px ${TIERCOL[g.tier]}"></span>
-       <span class="gk-id">N-${g.id}</span><span class="gk-bc">BC ${g.bc.toFixed(3)}</span></div>`).join("");
+       <span class="gk-id">N-${id}</span><span class="gk-bc">${metric}</span></div>`;
+  }).join("");
   document.querySelectorAll(".gk-row").forEach(r => {
     const id = +r.dataset.id;
     r.onclick = () => toggleManual(id);
@@ -204,8 +227,13 @@ async function loadTile(stem) {
   buildGraph(DATA);
   BASE_EFF = efficiency(new Set());
   ABL_ORDER = DATA.resilience.map(r => r.removed).filter(r => r !== null && r !== undefined);
-  topN = 0; manual.clear();
+  topN = 0; manual.clear(); floodStep = 0;
   const slider = $("#ablate"); slider.max = ABL_ORDER.length; slider.value = 0;
+  // flood control: only when this tile has a DEM-derived flood curve
+  const hasFlood = !!(DATA.flood && DATA.flood.length > 1);
+  ["#flood-wrap", "#flood", "#flood-sub"].forEach(s => { const el = $(s); if (el) el.hidden = !hasFlood; });
+  if (hasFlood) { const f = $("#flood"); f.max = DATA.flood.length - 1; f.value = 0; }
+  const gkb = $("#gk-mode"); if (gkb) gkb.hidden = !(DATA.service_gatekeepers && DATA.service_gatekeepers.length);
   // pick the view: Leaflet map for georeferenced tiles, 3D scene otherwise
   const geo = !!DATA.geo;
   const sc = $("#scene-canvas"), mp = $("#map");
@@ -281,7 +309,13 @@ async function init() {
   $("#loc-go").onclick = analyzeLocation;
   $("#loc-input").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); analyzeLocation(); } });
   $("#ablate").oninput = e => { topN = +e.target.value; render(); };
-  $("#reset-stress").onclick = () => { topN = 0; manual.clear(); $("#ablate").value = 0; render(); };
+  $("#flood").oninput = e => { floodStep = +e.target.value; render(); };
+  $("#reset-stress").onclick = () => { topN = 0; manual.clear(); floodStep = 0;
+    $("#ablate").value = 0; const f = $("#flood"); if (f) f.value = 0; render(); };
+  const gkb = $("#gk-mode");
+  if (gkb) gkb.onclick = () => { gkMode = gkMode === "bc" ? "svc" : "bc";
+    gkb.setAttribute("aria-pressed", gkMode === "svc"); gkb.textContent = gkMode === "svc" ? "Service" : "Betweenness";
+    renderGatekeepers(); render(); };
   $("#reset-view").onclick = () => activeView.resetView();
   const tr = $("#toggle-rotate"); tr.onclick = () => { const on = tr.getAttribute("aria-pressed") !== "true"; tr.setAttribute("aria-pressed", on); tr.textContent = `Auto-orbit: ${on ? "On" : "Off"}`; activeView.setAutoRotate(on); };
   const th = $("#toggle-heat"); th.onclick = () => { const on = th.getAttribute("aria-pressed") !== "true"; th.setAttribute("aria-pressed", on); th.textContent = `Criticality heat: ${on ? "On" : "Off"}`; activeView.setHeat(on); render(); };

@@ -123,7 +123,7 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--arch")                 # unet | unetpp | deeplabv3plus
     ap.add_argument("--encoder")              # e.g. resnet34 | resnet50 | efficientnet-b4
-    ap.add_argument("--loss", default="combined")  # combined | lovasz
+    ap.add_argument("--loss", default="combined")  # combined | lovasz | cldice
     ap.add_argument("--datasets", default="deepglobe")  # deepglobe | deepglobe+mass
     args = ap.parse_args()
 
@@ -160,6 +160,8 @@ def main():
                         cfg["model"]["in_channels"], cfg["model"]["classes"]).to(device)
     if args.loss == "lovasz":
         crit = losses.LovaszDiceLoss().to(device)
+    elif args.loss == "cldice":
+        crit = losses.ClDiceDiceLoss().to(device)
     else:
         crit = losses.CombinedLoss(cfg["loss"]["dice"], cfg["loss"]["bce"], cfg["loss"]["connectivity"]).to(device)
     print(f"  model: {arch} / {encoder} | loss: {args.loss} | datasets: {args.datasets}")

@@ -62,6 +62,57 @@ class CombinedLoss(nn.Module):
                 + self.wc * self.conn(logits, target))
 
 
+# ----------------------------------------------------------------- clDice (topology loss)
+def _soft_erode(x):
+    p1 = -F.max_pool2d(-x, (3, 1), (1, 1), (1, 0))
+    p2 = -F.max_pool2d(-x, (1, 3), (1, 1), (0, 1))
+    return torch.min(p1, p2)
+
+
+def _soft_open(x):
+    return F.max_pool2d(_soft_erode(x), (3, 3), (1, 1), (1, 1))      # erode then dilate
+
+
+def soft_skeletonize(x, iters=10):
+    """Differentiable morphological skeleton (Shit et al., clDice). Repeated soft erosion
+    peels the mask to its 1-px centerline; AMP-safe (only max_pool2d / relu / min)."""
+    sk = F.relu(x - _soft_open(x))
+    for _ in range(iters):
+        x = _soft_erode(x)
+        delta = F.relu(x - _soft_open(x))
+        sk = sk + F.relu(delta - sk * delta)
+    return sk
+
+
+class ClDiceDiceLoss(nn.Module):
+    """clDice (centerline Dice) + soft-Dice + BCE — directly optimizes *connectivity*.
+
+    clDice measures overlap between the soft skeletons of prediction and target, so a single
+    broken pixel (a road snapped by tree canopy) is penalized far more than by area Dice. It's
+    unstable alone, so Dice + BCE anchor it. All terms operate on logits and are AMP-safe.
+    Recommended for the connectivity-critical road task; swap in via `--loss cldice`.
+    """
+    def __init__(self, cldice=0.4, dice=0.4, bce=0.2, iters=10, smooth=1.0):
+        super().__init__()
+        self.wc, self.wd, self.wb, self.iters, self.smooth = cldice, dice, bce, iters, smooth
+        self.dice = DiceLoss()
+        self.bce = nn.BCEWithLogitsLoss()
+
+    def _cldice(self, prob, target):
+        sp = soft_skeletonize(prob, self.iters).float()
+        st = soft_skeletonize(target, self.iters).float()
+        t, p = target.float(), prob.float()
+        tprec = (torch.sum(sp * t) + self.smooth) / (torch.sum(sp) + self.smooth)   # skel_pred on target
+        tsens = (torch.sum(st * p) + self.smooth) / (torch.sum(st) + self.smooth)   # skel_target on pred
+        return 1.0 - 2.0 * tprec * tsens / (tprec + tsens)
+
+    def forward(self, logits, target):
+        prob = torch.sigmoid(logits)
+        return (self.wc * self._cldice(prob, target)
+                + self.wd * self.dice(logits, target)
+                + self.wb * self.bce(logits, target))
+
+
 class LovaszDiceLoss(nn.Module):
     """Stronger loss for the heavyweight model.
 

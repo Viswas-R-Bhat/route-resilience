@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=9" />
+<link rel="stylesheet" href="styles.css?v=10" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="lib/echarts.min.js"></script>
@@ -76,6 +76,7 @@
           <span><i class="sw norm"></i>Normal</span>
           <span><i class="sw heal"></i>Bridged gap</span>
           <span><i class="sw canopy"></i>Under canopy</span>
+          <span><i class="sw flood"></i>Flooded</span>
           <span><i class="sw off"></i>Disabled</span>
           <span><i class="sw route"></i>Active route</span>
         </div>
@@ -88,6 +89,9 @@
         <p class="muted sm">Disable Gatekeeper intersections (flood / accident / closure) and watch the network degrade.</p>
         <label class="slider-label" for="ablate">Disable top-<span id="ablate-n">0</span> gatekeepers</label>
         <input type="range" id="ablate" min="0" max="8" value="0" step="1" autocomplete="off" />
+        <label class="slider-label flood-row" for="flood" id="flood-wrap" hidden>🌊 Flood water level <span id="flood-m" class="flood-val">dry</span></label>
+        <input type="range" id="flood" class="flood-range" min="0" max="11" value="0" step="1" autocomplete="off" hidden />
+        <div class="flood-sub muted sm" id="flood-sub" hidden></div>
         <div class="resilience-readout">
           <div class="ri-num" id="ri-num">1.00</div>
           <div class="ri-meta"><span class="muted sm">Resilience Index</span><span id="ri-status" class="ri-status">STABLE</span></div>
@@ -105,7 +109,8 @@
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>Gatekeeper Nodes</h2></div>
+        <div class="card-head"><h2>Gatekeeper Nodes</h2>
+          <button id="gk-mode" class="ghost-btn sm-btn" aria-pressed="false" title="Rank by betweenness, or by betweenness × local demand">Betweenness</button></div>
         <div id="gatekeepers" class="gk-list" role="list"></div>
       </section>
     </aside>
@@ -118,6 +123,6 @@
 
   <div id="loader" class="loader"><div class="ring"></div><span>Initializing mission control…</span></div>
 
-  <script type="module" src="app.js?v=9"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>

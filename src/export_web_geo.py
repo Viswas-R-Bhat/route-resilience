@@ -54,7 +54,9 @@ def export_geo(stem, label):
         x, y = float(d["pos"][0]), float(d["pos"][1])
         lat, lng = px_to_latlng(x, y, b, W, H)
         nodes.append(dict(id=int(n), x=round(x, 1), y=round(y, 1), lat=lat, lng=lng,
-                          bc=round(float(d.get("betweenness", 0.0)), 4), tier=tiers[n], deg=int(G.degree[n])))
+                          bc=round(float(d.get("betweenness", 0.0)), 4), tier=tiers[n], deg=int(G.degree[n]),
+                          elev=(round(float(d["elev"]), 1) if d.get("elev") is not None else None),
+                          demand=d.get("demand"), svc=d.get("service_crit")))
     edges = []
     for u, v, d in G.edges(data=True):
         pts = downsample(d["pts"]) if (d.get("pts") is not None) else \
@@ -73,7 +75,10 @@ def export_geo(stem, label):
                canopy_saturated=bool(report.get("canopy_saturated", False)),
                nodes=nodes, edges=edges,
                gatekeepers=[dict(id=n["id"], bc=n["bc"], tier=n["tier"]) for n in ranked[:10]],
-               resilience=report.get("resilience", []))
+               service_gatekeepers=report.get("service_gatekeepers", []),
+               resilience=report.get("resilience", []),
+               flood=report.get("flood", []),
+               elev_min=report.get("elev_min"), elev_max=report.get("elev_max"))
     json.dump(out, open(os.path.join(WEB, f"{stem}.json"), "w"))
     print(f"  exported GEO {stem}: {len(nodes)} nodes / {len(edges)} edges | bounds {b}")
     return out

@@ -54,12 +54,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                            capture_output=True, text=True, timeout=600)
         sub(["src/fetch_geo_tile.py", "--lat", str(lat), "--lon", str(lon),
              "--zoom", "18", "--grid", str(grid), "--stem", stem, "--out", "runs/geo"])
+        try:                                                  # DEM is best-effort: flood overlay is optional
+            sub(["src/fetch_dem_tile.py", "--stem", stem, "--out", "runs/geo"])
+            dem = ["--dem", "runs/geo/%s_dem.npy" % stem]
+        except Exception:
+            dem = []
         sub(["src/run_pipeline.py", "--image", "runs/geo/%s_sat.png" % stem, "--ckpt", CKPT,
-             "--device", "cuda", "--out", "runs/geo", "--thr", "0.45", "--max-gap", "95", "--ang-tol", "50"])
+             "--device", "cuda", "--out", "runs/geo", "--thr", "0.45", "--max-gap", "95", "--ang-tol", "50"] + dem)
         sub(["src/export_web_geo.py", "--stem", stem, "--label", "Live · %.4f,%.4f" % (lat, lon), "--no-manifest"])
         # tidy heavy intermediates for ephemeral live tiles (page only needs web/data/<stem>.{json,jpg})
         if stem.startswith("live_"):
-            for suf in ("_sat.png", "_mask.png", "_graph.gpickle", "_report.json", "_pipeline.png", "_geo.json"):
+            for suf in ("_sat.png", "_mask.png", "_graph.gpickle", "_report.json", "_pipeline.png", "_geo.json", "_dem.npy"):
                 try:
                     os.remove(os.path.join(ROOT, "runs", "geo", stem + suf))
                 except OSError:

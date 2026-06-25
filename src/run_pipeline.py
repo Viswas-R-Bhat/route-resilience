@@ -18,7 +18,8 @@ import predict
 from phase2_skeleton import mask_to_skeleton
 from phase2_graph import skeleton_to_graph, graph_stats
 from phase3_heal import heal_graph, connectivity_report
-from phase4_analysis import compute_centrality, classify_nodes, ablation_simulation
+from phase4_analysis import (compute_centrality, classify_nodes, ablation_simulation,
+                             sample_node_elevations, flood_simulation, demand_weighted_criticality)
 
 
 def main():
@@ -33,6 +34,7 @@ def main():
     ap.add_argument("--top-k", type=int, default=8)
     ap.add_argument("--max-gap", type=float, default=50)
     ap.add_argument("--ang-tol", type=float, default=35)
+    ap.add_argument("--dem", help="DEM .npy registered to the tile -> flood-resilience overlay")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -79,13 +81,30 @@ def main():
         ranked = compute_centrality(H)
         cls = classify_nodes(H)
         abl = ablation_simulation(H, args.top_k)
+        svc = demand_weighted_criticality(H)        # betweenness x local demand
         report["gatekeepers"] = [dict(node=int(n), betweenness=round(b, 4), tier=cls[n]) for n, b in ranked[:10]]
+        report["service_gatekeepers"] = [dict(node=int(n), service_crit=s,
+            betweenness=round(H.nodes[n].get("betweenness", 0.0), 4),
+            demand=H.nodes[n].get("demand", 0.0), tier=cls[n]) for n, s in svc[:10]]
         report["resilience"] = abl
         r3 = next((r["resilience_index"] for r in abl if r["step"] == min(3, len(abl) - 1)), None)
         print(f"[4/4] top gatekeeper node {ranked[0][0]} (BC={ranked[0][1]:.3f}) | "
               f"Resilience Index after {min(3,len(abl)-1)} removals = {r3}")
     else:
         print("[4/4] graph too small for criticality analysis"); abl = []; ranked = []; cls = {}
+
+    # ---- flood-resilience overlay (optional: needs a DEM registered to the tile) ----
+    if args.dem and os.path.exists(args.dem) and H.number_of_nodes() >= 2:
+        dem = np.load(args.dem)
+        node_elev = sample_node_elevations(H, dem)
+        nx.set_node_attributes(H, node_elev, "elev")
+        report["flood"] = flood_simulation(H, node_elev, n_steps=12)
+        report["elev_min"] = round(min(node_elev.values()), 1)
+        report["elev_max"] = round(max(node_elev.values()), 1)
+        worst = min(report["flood"], key=lambda r: r["resilience_index"])
+        print(f"[flood] elev {report['elev_min']}-{report['elev_max']} m | "
+              f"at +{report['elev_max']-report['elev_min']:.0f}m peak, resilience floor {worst['resilience_index']}")
+
     pickle.dump(H, open(os.path.join(args.out, f"{stem}_graph.gpickle"), "wb"))  # after centrality -> attrs included
     json.dump(report, open(os.path.join(args.out, f"{stem}_report.json"), "w"), indent=2)
 
