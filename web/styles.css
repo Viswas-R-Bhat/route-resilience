@@ -130,6 +130,13 @@ body{
 .flood-sub{margin-top:4px;color:var(--flood)}
 .sm-btn{font-size:.66rem;padding:3px 9px;margin-left:auto}
 .card-head{display:flex;align-items:center;gap:10px}
+.osm-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.osm-metric{display:flex;flex-direction:column;gap:1px;padding:9px 11px;border-radius:10px;
+  background:rgba(255,255,255,.03);border:1px solid var(--border)}
+.om-val{font-size:1.5rem;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.om-label{font-size:.72rem;color:var(--text);margin-top:3px}
+.om-sub{font-size:.62rem;color:var(--faint)}
+.sw.osm{background:#fff;opacity:.5}
 .sw.route{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6)}
 .scene-hint{position:absolute;right:16px;top:16px;font-size:.7rem;color:var(--faint);
   background:rgba(6,8,13,.55);padding:7px 12px;border-radius:10px;border:1px solid var(--border);backdrop-filter:blur(10px)}

@@ -78,7 +78,8 @@ def export_geo(stem, label):
                service_gatekeepers=report.get("service_gatekeepers", []),
                resilience=report.get("resilience", []),
                flood=report.get("flood", []),
-               elev_min=report.get("elev_min"), elev_max=report.get("elev_max"))
+               elev_min=report.get("elev_min"), elev_max=report.get("elev_max"),
+               osm=report.get("osm"), osm_lines=report.get("osm_lines", []))
     json.dump(out, open(os.path.join(WEB, f"{stem}.json"), "w"))
     print(f"  exported GEO {stem}: {len(nodes)} nodes / {len(edges)} edges | bounds {b}")
     return out

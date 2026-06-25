@@ -35,6 +35,7 @@ def main():
     ap.add_argument("--max-gap", type=float, default=50)
     ap.add_argument("--ang-tol", type=float, default=35)
     ap.add_argument("--dem", help="DEM .npy registered to the tile -> flood-resilience overlay")
+    ap.add_argument("--osm", action="store_true", help="benchmark the graph vs OpenStreetMap (needs <stem>_geo.json)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -106,6 +107,19 @@ def main():
               f"at +{report['elev_max']-report['elev_min']:.0f}m peak, resilience floor {worst['resilience_index']}")
 
     pickle.dump(H, open(os.path.join(args.out, f"{stem}_graph.gpickle"), "wb"))  # after centrality -> attrs included
+
+    # ---- OSM topological-accuracy benchmark (optional, best-effort: needs <stem>_geo.json + network) ----
+    if args.osm:
+        try:
+            import osm_benchmark
+            osm_res, osm_lines = osm_benchmark.run(stem, args.out, n_pairs=150)
+            report["osm"] = osm_res; report["osm_lines"] = osm_lines
+            c = osm_res["coverage"]; p = osm_res["path_length"] or {}
+            print(f"[osm] recall {c['recall']*100:.0f}% precision {c['precision']*100:.0f}% | "
+                  f"median path-len err {p.get('median_path_length_error_pct')}% | offset {osm_res['registration_offset_px']}px")
+        except Exception as e:
+            print(f"[osm] skipped ({type(e).__name__}: {e})")
+
     json.dump(report, open(os.path.join(args.out, f"{stem}_report.json"), "w"), indent=2)
 
     # ---- composite figure ----

@@ -14,7 +14,7 @@
       "geo": true,
       "nodes": 1015,
       "edges": 979,
-      "gatekeeper_bc": 0.1969
+      "gatekeeper_bc": 0.1983
     },
     {
       "stem": "blr_rajajinagar",
@@ -22,7 +22,7 @@
       "geo": true,
       "nodes": 1494,
       "edges": 1514,
-      "gatekeeper_bc": 0.3127
+      "gatekeeper_bc": 0.3173
     },
     {
       "stem": "blr_res",
@@ -30,7 +30,7 @@
       "geo": true,
       "nodes": 1104,
       "edges": 1012,
-      "gatekeeper_bc": 0.0915
+      "gatekeeper_bc": 0.0856
     },
     {
       "stem": "blr_sector",
@@ -38,7 +38,7 @@
       "geo": true,
       "nodes": 927,
       "edges": 915,
-      "gatekeeper_bc": 0.1836
+      "gatekeeper_bc": 0.1852
     }
   ],
   "default": "blr_hsr"

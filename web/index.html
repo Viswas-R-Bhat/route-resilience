@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=10" />
+<link rel="stylesheet" href="styles.css?v=11" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="lib/echarts.min.js"></script>
@@ -79,6 +79,7 @@
           <span><i class="sw flood"></i>Flooded</span>
           <span><i class="sw off"></i>Disabled</span>
           <span><i class="sw route"></i>Active route</span>
+          <span><i class="sw osm"></i>OSM roads</span>
         </div>
       </div>
     </section>
@@ -113,6 +114,13 @@
           <button id="gk-mode" class="ghost-btn sm-btn" aria-pressed="false" title="Rank by betweenness, or by betweenness × local demand">Betweenness</button></div>
         <div id="gatekeepers" class="gk-list" role="list"></div>
       </section>
+
+      <section class="card osm-card" id="osm-card" hidden>
+        <div class="card-head"><h2>OSM Validation</h2>
+          <button id="osm-toggle" class="ghost-btn sm-btn" aria-pressed="false" title="Overlay OpenStreetMap ground-truth roads">Show roads</button></div>
+        <p class="muted sm">Extracted graph vs OpenStreetMap ground truth (registration-corrected).</p>
+        <div class="osm-metrics" id="osm-metrics"></div>
+      </section>
     </aside>
   </main>
 
@@ -123,6 +131,6 @@
 
   <div id="loader" class="loader"><div class="ring"></div><span>Initializing mission control…</span></div>
 
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=15"></script>
 </body>
 </html>

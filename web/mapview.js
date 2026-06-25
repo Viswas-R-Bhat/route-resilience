@@ -19,7 +19,17 @@ export class MapView {
     this.edgeLayer = L.layerGroup().addTo(this.map);
     this.nodeLayer = L.layerGroup().addTo(this.map);
     this.routeLayer = L.layerGroup().addTo(this.map);
-    this.nodeMarkers = {}; this.edgeObjs = []; this.heat = true; this.pos = {};
+    this.nodeMarkers = {}; this.edgeObjs = []; this.heat = true; this.pos = {}; this.osmLayer = null;
+  }
+
+  setOsm(lines) {                                  // overlay OSM ground-truth roads (lat/lng polylines)
+    if (this.osmLayer) { this.map.removeLayer(this.osmLayer); this.osmLayer = null; }
+    if (!lines || !lines.length) return;
+    const renderer = L.svg({ padding: 0.5 });      // own SVG renderer: paints immediately (the
+    this.osmLayer = L.layerGroup();                // canvas renderer defers post-hoc layers)
+    for (const ln of lines)
+      if (ln.length >= 2) L.polyline(ln, { renderer, color: "#ffffff", weight: 2, opacity: .9, dashArray: "5 4", interactive: false }).addTo(this.osmLayer);
+    this.osmLayer.addTo(this.map);
   }
 
   _heat(t) {                                   // green (0.33) -> coral (0) in HSL, refined
@@ -30,6 +40,7 @@ export class MapView {
   setData(data) {
     this.data = data;
     if (this.overlay) this.map.removeLayer(this.overlay);
+    if (this.osmLayer) { this.map.removeLayer(this.osmLayer); this.osmLayer = null; }
     this.edgeLayer.clearLayers(); this.nodeLayer.clearLayers(); this.routeLayer.clearLayers();
     this.nodeMarkers = {}; this.edgeObjs = []; this.pos = {};
     const b = data.bounds, bounds = [[b.south, b.west], [b.north, b.east]];

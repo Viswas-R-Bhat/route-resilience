@@ -182,6 +182,7 @@ export class RoadScene {
   }
   setHeat(on) { this.heat = on; this.applyState(this.disabled || new Set(), this.flooded); }
   setAutoRotate(on) { this.controls.autoRotate = on; }
+  setOsm() { /* OSM overlay is map-only */ }
   resetView() { this.cam.position.set(0, 9, 9); this.controls.target.set(0, 0, 0); this.controls.update(); }
 
   applyState(disabled, flooded = new Set()) {

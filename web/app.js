@@ -1,10 +1,10 @@
-import { startBackground, RoadScene } from "./scene.js?v=6";
-import { MapView } from "./mapview.js?v=6";
+import { startBackground, RoadScene } from "./scene.js?v=7";
+import { MapView } from "./mapview.js?v=11";
 
 const $ = s => document.querySelector(s);
 const TIERCOL = { critical: "#ff6b5e", important: "#f0b75e", normal: "#5ec8a0" };
 
-let DATA, ADJ, IDS, NTOTAL, BASE_EFF, ABL_ORDER, topN = 0, floodStep = 0, gkMode = "bc";
+let DATA, ADJ, IDS, NTOTAL, BASE_EFF, ABL_ORDER, topN = 0, floodStep = 0, gkMode = "bc", osmShown = false;
 let OD = null, BASE_OD_PATH = [], SECTOR = [];   // representative route + sector pairs for travel-time
 const manual = new Set();           // nodes disabled by click (on top of slider)
 let scene, mapView = null, activeView, chart;
@@ -218,6 +218,24 @@ function renderChart() {
   }, true);
 }
 
+function renderOsm() {
+  const card = $("#osm-card"); if (!card) return;
+  const o = DATA.osm;
+  if (!o || !o.coverage) { card.hidden = true; return; }
+  card.hidden = false;
+  const c = o.coverage, p = o.path_length || {};
+  const cell = (val, label, sub, accent) =>
+    `<div class="osm-metric"><span class="om-val" style="color:${accent}">${val}</span>
+       <span class="om-label">${label}</span><span class="om-sub">${sub}</span></div>`;
+  const pe = p.median_path_length_error_pct;
+  $("#osm-metrics").innerHTML = [
+    cell((c.recall * 100).toFixed(0) + "%", "Recall vs OSM", "roads recovered", "#5ec8a0"),
+    cell(pe == null ? "–" : pe.toFixed(1) + "%", "Path-length err", "median vs OSM routes", "#4c8bf5"),
+    cell(((p.routing_success || 0) * 100).toFixed(0) + "%", "Routing match", "OSM trips we can route", "#f0b75e"),
+    cell((c.precision * 100).toFixed(0) + "%", "Precision", `${o.osm_edges} OSM edges`, "#9aa0a6"),
+  ].join("");
+}
+
 function toggleManual(id) { manual.has(id) ? manual.delete(id) : manual.add(id); render(); }
 
 /* ---------- load a region ---------- */
@@ -251,8 +269,11 @@ async function loadTile(stem) {
                                    : "Drag to orbit · scroll to zoom · click a node to disable it";
 
   activeView.setData(DATA);
+  osmShown = false;
+  if (activeView.setOsm) activeView.setOsm(null);
+  const ot = $("#osm-toggle"); if (ot) { ot.setAttribute("aria-pressed", "false"); ot.textContent = "Show roads"; }
   computeRoutes();
-  renderGatekeepers(); renderChart(); render();
+  renderGatekeepers(); renderChart(); renderOsm(); render();
   setTimeout(() => $("#loader").classList.add("hidden"), 350);
 }
 
@@ -316,6 +337,10 @@ async function init() {
   if (gkb) gkb.onclick = () => { gkMode = gkMode === "bc" ? "svc" : "bc";
     gkb.setAttribute("aria-pressed", gkMode === "svc"); gkb.textContent = gkMode === "svc" ? "Service" : "Betweenness";
     renderGatekeepers(); render(); };
+  const ot = $("#osm-toggle");
+  if (ot) ot.onclick = () => { osmShown = !osmShown; ot.setAttribute("aria-pressed", osmShown);
+    ot.textContent = osmShown ? "Hide roads" : "Show roads";
+    if (activeView.setOsm) activeView.setOsm(osmShown ? (DATA.osm_lines || []) : null); };
   $("#reset-view").onclick = () => activeView.resetView();
   const tr = $("#toggle-rotate"); tr.onclick = () => { const on = tr.getAttribute("aria-pressed") !== "true"; tr.setAttribute("aria-pressed", on); tr.textContent = `Auto-orbit: ${on ? "On" : "Off"}`; activeView.setAutoRotate(on); };
   const th = $("#toggle-heat"); th.onclick = () => { const on = th.getAttribute("aria-pressed") !== "true"; th.setAttribute("aria-pressed", on); th.textContent = `Criticality heat: ${on ? "On" : "Off"}`; activeView.setHeat(on); render(); };
