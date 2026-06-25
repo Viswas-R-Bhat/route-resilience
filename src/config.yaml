@@ -17,7 +17,9 @@ model:
   arch: unet                 # unet | unetpp | deeplabv3plus
   encoder: resnet34
   encoder_weights: imagenet
-  in_channels: 3
+  in_channels: 3             # auto-set to len(channels) at train time
+  channels: [r, g, b]        # input bands. add derived: hue, sat, val, exg | spectral: nir
+                             #   e.g. [r, g, b, hue]  or  [r, g, b, exg]  or  [r, g, b, nir] (needs MS data)
   classes: 1                 # binary road / not-road (model outputs logits)
 
 train:

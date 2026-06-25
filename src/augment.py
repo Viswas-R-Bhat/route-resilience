@@ -16,6 +16,76 @@ IMAGENET_STD = (0.229, 0.224, 0.225)
 _BLACK = [(0.0 - m) / s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)]
 
 
+# ------------------------------------------------------------ configurable input channels
+# RGB is the base. Extra channels let the model see beyond colour:
+#   hue/sat/val : HSV decomposition (separates colour from brightness — gray asphalt has low sat)
+#   exg         : Excess-Green vegetation index (2G-R-B) — vegetation/canopy cue for occlusion
+#   nir         : near-infrared IF supplied (LISS-IV / Sentinel-2 / Cartosat MS). DeepGlobe and
+#                 Esri are RGB-only, so 'nir' is zero-filled unless a real NIR band is passed in.
+RGB = ["r", "g", "b"]
+_RGB_IDX = {"r": 0, "g": 1, "b": 2}
+
+
+def _exg_u8(rgb):
+    r, g, b = (rgb[..., i].astype(np.int32) for i in range(3))
+    return np.clip((2 * g - r - b + 510) * (255.0 / 1020.0), 0, 255).astype(np.uint8)
+
+
+def build_channels(rgb, spec, nir=None):
+    """Stack the configured channels from an RGB uint8 image -> HxWxlen(spec) uint8.
+
+    rgb: HxWx3 uint8 (RGB); nir: optional HxW uint8. Every channel is emitted as uint8 [0,255]
+    so it drops straight into A.Normalize (see `channel_norm`)."""
+    hsv, out = None, []
+    for ch in spec:
+        if ch in _RGB_IDX:
+            out.append(rgb[..., _RGB_IDX[ch]])
+        elif ch in ("hue", "sat", "val"):
+            if hsv is None:
+                hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+            if ch == "hue":
+                out.append((hsv[..., 0].astype(np.uint16) * 255 // 179).astype(np.uint8))  # [0,179]->[0,255]
+            else:
+                out.append(hsv[..., 1 if ch == "sat" else 2])
+        elif ch == "exg":
+            out.append(_exg_u8(rgb))
+        elif ch == "nir":
+            out.append(nir if nir is not None else np.zeros(rgb.shape[:2], np.uint8))
+        else:
+            raise ValueError(f"unknown channel '{ch}'")
+    return np.stack(out, axis=-1)
+
+
+def channel_norm(spec):
+    """(mean, std) per channel for A.Normalize, matching build_channels order: RGB -> ImageNet
+    stats, derived/extra channels -> map [0,1] to ~[-1,1]."""
+    mean = [IMAGENET_MEAN[_RGB_IDX[c]] if c in _RGB_IDX else 0.5 for c in spec]
+    std = [IMAGENET_STD[_RGB_IDX[c]] if c in _RGB_IDX else 0.5 for c in spec]
+    return mean, std
+
+
+class StackChannels(A.ImageOnlyTransform):
+    """Expand the (augmented) RGB image to the configured channels — placed just before
+    Normalize so geometric/photometric augs stay on RGB and hue/exg reflect the augmented colour."""
+    def __init__(self, spec, p=1.0):
+        super().__init__(p=p)
+        self.spec = spec
+
+    def apply(self, img, **params):
+        return build_channels(img, self.spec)
+
+    def get_transform_init_args_names(self):
+        return ("spec",)
+
+
+def _finalize(augs, channels):
+    """Append (StackChannels +) per-channel Normalize + ToTensor. RGB stays byte-identical."""
+    mean, std = channel_norm(channels)
+    if channels != RGB:
+        augs = augs + [StackChannels(channels)]
+    return A.Compose(augs + [A.Normalize(mean=mean, std=std), ToTensorV2()])
+
+
 def occlusion_aug(crop, max_holes=8, max_frac=0.125, p=0.5):
     max_sz = max(8, int(max_frac * crop))
     min_sz = max(8, max_sz // 4)
@@ -29,8 +99,8 @@ def occlusion_aug(crop, max_holes=8, max_frac=0.125, p=0.5):
     )
 
 
-def train_tf(crop=512, occ_p=0.5, occ_max_holes=8, occ_max_frac=0.125):
-    return A.Compose([
+def train_tf(crop=512, occ_p=0.5, occ_max_holes=8, occ_max_frac=0.125, channels=RGB):
+    return _finalize([
         A.RandomCrop(crop, crop, pad_if_needed=True),
         A.RandomRotate90(p=0.5),
         A.HorizontalFlip(p=0.5),
@@ -45,22 +115,16 @@ def train_tf(crop=512, occ_p=0.5, occ_max_holes=8, occ_max_frac=0.125):
         A.GaussNoise(p=0.3),
         occlusion_aug(crop, occ_max_holes, occ_max_frac, occ_p),
         A.OneOf([A.GaussianBlur(blur_limit=(3, 7)), A.MotionBlur(blur_limit=7)], p=0.3),
-        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-        ToTensorV2(),
-    ])
+    ], channels)
 
 
-def val_tf(crop=512):
-    return A.Compose([
-        A.CenterCrop(crop, crop, pad_if_needed=True),
-        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-        ToTensorV2(),
-    ])
+def val_tf(crop=512, channels=RGB):
+    return _finalize([A.CenterCrop(crop, crop, pad_if_needed=True)], channels)
 
 
 # --- post-crop variants (cropping is done in the dataset, e.g. white-nodata-aware) ---
-def train_aug(crop=640, occ_p=0.5, occ_max_holes=8, occ_max_frac=0.125):
-    return A.Compose([
+def train_aug(crop=640, occ_p=0.5, occ_max_holes=8, occ_max_frac=0.125, channels=RGB):
+    return _finalize([
         A.RandomRotate90(p=0.5),
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.3),
@@ -74,13 +138,11 @@ def train_aug(crop=640, occ_p=0.5, occ_max_holes=8, occ_max_frac=0.125):
         A.GaussNoise(p=0.3),
         occlusion_aug(crop, occ_max_holes, occ_max_frac, occ_p),
         A.OneOf([A.GaussianBlur(blur_limit=(3, 7)), A.MotionBlur(blur_limit=7)], p=0.3),
-        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-        ToTensorV2(),
-    ])
+    ], channels)
 
 
-def val_aug():
-    return A.Compose([A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD), ToTensorV2()])
+def val_aug(channels=RGB):
+    return _finalize([], channels)
 
 
 def occlude_tensor(img_t, frac=0.18, holes=4, rng=None):
@@ -102,6 +164,6 @@ def occlude_tensor(img_t, frac=0.18, holes=4, rng=None):
         y = int(rng.integers(0, H - h + 1))
         x = int(rng.integers(0, W - w + 1))
         for c in range(C):
-            occ[c, y:y + h, x:x + w] = _BLACK[c]
+            occ[c, y:y + h, x:x + w] = _BLACK[c] if c < len(_BLACK) else -1.0   # extra channels: normalized 0
         mask[y:y + h, x:x + w] = 1.0
     return occ, mask

@@ -147,17 +147,21 @@ def main():
           f"val {len(va_samples)} | crop {crop} | bs {bs} | epochs {epochs} | device {device}")
 
     a = cfg["augment"]
+    channels = cfg["model"].get("channels", augment.RGB)        # input bands (RGB + optional hue/sat/val/exg/nir)
+    cfg["model"]["channels"] = channels                          # ensure it's saved in the checkpoint cfg
+    cfg["model"]["in_channels"] = len(channels)                 # keep in_channels consistent with the band count
     tr_ds = DS.RoadSegDataset(tr_samples, augment.train_aug(crop, a["occlusion_prob"],
-                              a["occlusion_max_holes"], a["occlusion_max_frac"]), crop, "train", cfg["data"]["road_thresh"])
-    va_ds = DS.RoadSegDataset(va_samples, augment.val_aug(), crop, "val", cfg["data"]["road_thresh"])
+                              a["occlusion_max_holes"], a["occlusion_max_frac"], channels), crop, "train", cfg["data"]["road_thresh"])
+    va_ds = DS.RoadSegDataset(va_samples, augment.val_aug(channels), crop, "val", cfg["data"]["road_thresh"])
     nw = cfg["data"]["num_workers"]
     tr_dl = DataLoader(tr_ds, batch_size=bs, shuffle=True, num_workers=nw, pin_memory=True, drop_last=True)
     va_dl = DataLoader(va_ds, batch_size=bs, shuffle=False, num_workers=nw, pin_memory=True)
 
     arch = args.arch or cfg["model"]["arch"]
     encoder = args.encoder or cfg["model"]["encoder"]
+    print(f"  input channels ({len(channels)}): {channels}")
     net = M.build_model(arch, encoder, cfg["model"]["encoder_weights"],
-                        cfg["model"]["in_channels"], cfg["model"]["classes"]).to(device)
+                        len(channels), cfg["model"]["classes"]).to(device)
     if args.loss == "lovasz":
         crit = losses.LovaszDiceLoss().to(device)
     elif args.loss == "cldice":
