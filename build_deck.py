@@ -218,10 +218,10 @@ add_text(s3, LEFT, CONTENT_TOP - 0.06, WIDTH, 0.62,
 lx, lw = LEFT, 4.55
 add_text(s3, lx, CONTENT_TOP+0.60, lw, 0.3, [{"t":"How we are different"}], size=13.5, color=BLUE, bold=True, font=HFONT)
 usps = [
-    ("Occlusion-robust by design", "Context-aware DL trained with synthetic occlusion learns roads exist under shadow/canopy.", TEAL),
-    ("Topological healing", "MST + Disjoint-Set with angular alignment turn broken pixels into a connected, routable graph.", BLUE),
-    ("Predictive “what-if” resilience", "Node-ablation stress tests quantify systemic collapse via a Resilience Index.", ORANGE),
-    ("Indigenous EO + open truth", "Cartosat / LISS-IV / Sentinel-2 with OSM pseudo-labels — zero manual labelling.", PURPLE),
+    ("Occlusion-robust extraction", "Canopy-aware hysteresis grows faint roads from confident seeds, reaching deeper under tree cover to recover occluded segments.", TEAL),
+    ("Evidence-based topological healing", "Union-Find + an Excess-Green canopy mask bridge gaps where roads truly continue — each bridge flagged by confidence, not a blind guess.", BLUE),
+    ("Predictive resilience: failure & flood", "Weighted-betweenness ablation, DEM flood-submersion and demand-weighted criticality quantify systemic collapse.", ORANGE),
+    ("Validated against OSM ground truth", "A topological-accuracy benchmark scores the graph vs OpenStreetMap: recall, path-length error and routing match.", PURPLE),
 ]
 cy = CONTENT_TOP + 0.98
 ch = 0.66
@@ -263,14 +263,14 @@ add_line(s3, rx+panelW+0.06, panelY+panelH/2, pbx-0.06, panelY+panelH/2, color=O
 s4 = sl[3]; del_nonbg(s4)
 content_title(s4, "Key Features")
 feats = [
-    ("Occlusion-robust segmentation", "Attention U-Net with multi-scale context fusion “sees through” canopy, shadow & cloud.", TEAL),
-    ("Topological reconstruction", "Skeletonize → graph → MST healing yields a routable weighted vector network.", BLUE),
-    ("Gatekeeper-node detection", "Betweenness centrality maps the city’s critical intersections & weakest links.", ORANGE),
-    ("Disaster stress-test simulation", "Node ablation models floods, accidents & closures, with instant rerouting.", RED),
-    ("Resilience Index", "Single metric for network efficiency loss — from 1.00 (stable) toward 0 (collapse).", PURPLE),
-    ("Interactive planner dashboard", "Dark Streamlit + Leaflet map; click a node to disable it and see the impact.", CYAN),
-    ("Cross-terrain generalization", "Works across dense urban, forested suburban and rural landscapes.", TEAL),
-    ("Modular & lightweight", "Analysis & UI run on CPU; training fits a single laptop GPU.", AMBER),
+    ("Occlusion-robust segmentation", "U-Net/ResNet34 with canopy-aware hysteresis thresholding recovers roads under canopy & shadow.", TEAL),
+    ("Topological reconstruction", "Skeletonize → graph → Union-Find healing yields a routable weighted vector network.", BLUE),
+    ("Canopy-aware gap healing", "Excess-Green evidence + trajectory alignment bridge occlusion gaps, tagged by confidence.", TEAL),
+    ("Gatekeeper-node detection", "Weighted betweenness (k-sampled at scale) maps critical intersections & weakest links.", ORANGE),
+    ("Flood & failure stress-test", "DEM-driven flood submersion + node ablation drive a live Resilience Index.", RED),
+    ("Demand-weighted criticality", "Betweenness × local road-density surfaces nodes whose failure strands real travel.", AMBER),
+    ("OSM validation benchmark", "Graph scored vs OpenStreetMap: recall, path-length error & routing match.", PURPLE),
+    ("Live interactive dashboard", "Custom Leaflet + Three.js (WebGL) UI — search any place for live GPU analysis.", CYAN),
 ]
 cols, rows = 2, 4
 gx, gy = 0.30, 0.18
@@ -289,7 +289,7 @@ for idx, (title, desc, col) in enumerate(feats):
 # ===== SLIDE 5 : Process flow (embed image, framed) =====
 s5 = sl[4]; del_nonbg(s5)
 content_title(s5, "Process Flow",
-    sub="Raw EO imagery → ML extraction → skeletonization → topological healing → network analysis → stress testing → dashboard")
+    sub="Imagery → extraction → skeleton/graph → canopy-aware healing → resilience → OSM validation → dashboard")
 iw, ih = Image.open(".qa/flow.png").size
 aspect = ih/iw
 region_top = CONTENT_TOP + 0.36
@@ -306,15 +306,15 @@ s5.shapes.add_picture(".qa/flow.png", Inches(fx+pad), Inches(fy+pad), width=Inch
 
 # ===== SLIDE 6 : dashboard mockup (dark) =====
 s6 = sl[5]; del_nonbg(s6)
-content_title(s6, "Dashboard Mock-up", sub="Premium dark-themed planner UI · Streamlit + Leaflet")
+content_title(s6, "Live Dashboard", sub="Premium dark UI · Leaflet + Three.js (WebGL) · live GPU backend · search any place")
 mY = CONTENT_TOP + 0.30
 app = add_box(s6, LEFT, mY, WIDTH, BODY_BOT-mY, fill=DBG, line=DLINE, radius=0.03)
 # app header
 add_text(s6, LEFT+0.25, mY+0.12, 4.5, 0.3, [{"t":"◉  ROUTE RESILIENCE","bold":True}], size=14, color=DTEAL, font=HFONT)
 add_text(s6, RIGHT-3.0, mY+0.16, 2.8, 0.3, [{"t":"ISRO BAH 2026 · PS-4","align":PP_ALIGN.RIGHT}], size=9, color=DMUTE)
 # metric cards row
-metrics = [("RESILIENCE INDEX","0.62",DAMBER,"DEGRADED"),("ROAD NODES","4,812",DTEAL,"healed graph"),
-           ("TOP GATEKEEPER","N-1407",DRED,"BC 0.089"),("CONNECTIVITY","+88%",DTEAL,"post-healing")]
+metrics = [("RESILIENCE INDEX","0.78",DTEAL,"HSR Layout · stable"),("ROAD NODES","187",DTEAL,"healed graph"),
+           ("CONNECTIVITY","90%",DTEAL,"LCC post-healing"),("OSM RECALL","65%",DGOLD,"vs ground truth")]
 mcw = (WIDTH-0.5-0.30*3)/4; mcx = LEFT+0.25; mcy = mY+0.52; mch=0.80
 for label, val, col, sub in metrics:
     add_box(s6, mcx, mcy, mcw, mch, fill=DCARD, line=DLINE, radius=0.10)
@@ -326,7 +326,7 @@ for label, val, col, sub in metrics:
 mapY = mcy+mch+0.16; mapH = BODY_BOT-0.18-mapY; mapW = WIDTH-0.5-3.0-0.25
 mapX = LEFT+0.25
 mp = add_box(s6, mapX, mapY, mapW, mapH, fill="0E1320", line=DLINE, radius=0.04)
-add_text(s6, mapX+0.12, mapY+0.06, 4, 0.2, [{"t":"CRITICALITY MAP · Bengaluru"}], size=8, color=DMUTE, bold=True)
+add_text(s6, mapX+0.12, mapY+0.06, 4, 0.2, [{"t":"CRITICALITY MAP · HSR Layout, Bengaluru"}], size=8, color=DMUTE, bold=True)
 gx0, gy0, gw0, gh0 = mapX+0.2, mapY+0.34, mapW-0.4, mapH-0.5
 mnodes = {"a":(0.1,0.2),"b":(0.4,0.12),"c":(0.72,0.22),"d":(0.92,0.4),"e":(0.2,0.5),
           "f":(0.5,0.45),"g":(0.78,0.55),"h":(0.32,0.82),"i":(0.62,0.8),"j":(0.88,0.85)}
@@ -351,8 +351,8 @@ add_text(s6, fx-0.12, fy-0.14, 0.24, 0.26, [{"t":"✕","align":PP_ALIGN.CENTER}]
 gkx = mapX+mapW+0.25; gkw = RIGHT-0.25-gkx
 add_box(s6, gkx, mapY, gkw, mapH, fill=DPANEL, line=DLINE, radius=0.06)
 add_text(s6, gkx+0.14, mapY+0.08, gkw-0.28, 0.2, [{"t":"GATEKEEPER NODES"}], size=8, color=DGOLD, bold=True)
-ranks=[("#1  N-1407","0.089",DRED),("#2  N-0982","0.071",DRED),("#3  N-2255","0.058",DAMBER),
-       ("#4  N-0613","0.047",DAMBER),("#5  N-1190","0.039",DTEAL)]
+ranks=[("#1  N-78","0.390",DRED),("#2  N-73","0.312",DRED),("#3  N-74","0.284",DAMBER),
+       ("#4  N-69","0.267",DAMBER),("#5  N-76","0.265",DTEAL)]
 ry=mapY+0.32; row_h=0.26; step=0.295
 for name,sc,col in ranks:
     add_box(s6, gkx+0.12, ry, gkw-0.24, row_h, fill=DCARD, line=None, radius=0.20)
@@ -367,17 +367,17 @@ content_title(s7, "Solution Architecture")
 inY = CONTENT_TOP + 0.02
 ib = add_box(s7, LEFT, inY, WIDTH, 0.46, fill=NAVY, line=None, radius=0.10)
 box_text(ib, [{"t":[{"t":"INPUTS   ","bold":True,"color":ORANGE,"size":11},
-                    {"t":"Sentinel-2 (10m)  ·  Resourcesat LISS-IV (5.8m)  ·  Cartosat-3 (hi-res)  ·  OpenStreetMap ground truth","color":WHITE,"size":10.5}]}],
+                    {"t":"DeepGlobe (training)  ·  Esri World Imagery ~0.6 m (live)  ·  AWS DEM  ·  OpenStreetMap (validation)  ·  NIR-ready for LISS-IV / Cartosat-3","color":WHITE,"size":9.8}]}],
          align=PP_ALIGN.CENTER)
 # phase boxes
 phases = [
-    ("P1","Segmentation","U-Net + ResNet34 (SMP)\nDice+BCE+Conn · D4 TTA\nSynthetic-occlusion aug", TEAL),
-    ("P2","Skeletonization","Morph. closing\nZhang-Suen thinning\nGraph builder", BLUE),
-    ("P3","Topological Healing","Union-Find + MST\nAngular alignment\nGap bridging", PURPLE),
-    ("P4","Network Analysis","Betweenness centrality\nNode ablation\nResilience Index", ORANGE),
-    ("P5","Dashboard","Streamlit + Folium\nLeaflet / DarkMatter\nClick-to-disable", CYAN),
+    ("P1","Segmentation","U-Net + ResNet34 (SMP)\nCanopy-aware hysteresis\nD4 TTA · occlusion aug", TEAL),
+    ("P2","Skeleton → Graph","Zhang-Suen thinning\nsknw graph + spur prune\nlength-weighted edges", BLUE),
+    ("P3","Canopy Healing","Union-Find + Excess-Green\nTrajectory alignment\nConfidence-tiered bridges", PURPLE),
+    ("P4","Resilience","Betweenness (k-sampled)\nFlood-DEM + ablation\nDemand-weighted crit.", ORANGE),
+    ("P5","Live Dashboard","Leaflet + Three.js (WebGL)\nECharts · /api/analyze\nstdlib Python server", CYAN),
 ]
-art_out = ["binary mask","raw graph","routable graph","criticality + metrics","interactive UI"]
+art_out = ["road mask","raw graph","routable graph","criticality + RI","live planner UI"]
 n=5; gap=0.34
 pbw=(WIDTH-gap*(n-1))/n
 pbY=inY+0.78; pbH=2.05
@@ -403,7 +403,7 @@ for i in range(n-1):
 outY=pbY+pbH+0.16
 ob=add_box(s7, LEFT, outY, WIDTH, 0.40, fill=LIGHT, line=BORDER, radius=0.10)
 box_text(ob, [{"t":[{"t":"VALIDATED   ","bold":True,"color":TEAL,"size":10.5},
-                    {"t":"Real held-out DeepGlobe (934 tiles, never seen in training)  ·  Road IoU 0.605  ·  Relaxed-IoU 0.770  ·  Occlusion-recall 0.63  —  U-Net/ResNet34 + D4 TTA, threshold-tuned","color":NAVY,"size":9.2}]}],
+                    {"t":"Held-out DeepGlobe (934 tiles): IoU 0.605 · Relaxed-IoU 0.770   ·   vs OpenStreetMap: recall 65%, median path-error 7.5%   ·   healing LCC 77%→90%","color":NAVY,"size":9.0}]}],
          align=PP_ALIGN.CENTER)
 
 # ===== SLIDE 8 : Technologies =====
@@ -429,12 +429,12 @@ def chip_row(slide, chips, x0, x_right, y_center, base=9.5, h=0.32, gap=0.11):
         x += w + gap
 
 groups = [
-    ("Data & Geospatial", ORANGE, ["Rasterio","GDAL","GeoPandas","Shapely","OSMnx","Albumentations"]),
-    ("Segmentation (DL)", TEAL, ["PyTorch","SMP · U-Net+ResNet34","torchvision","Mixed Precision (AMP)"]),
-    ("Skeletonization", BLUE, ["scikit-image","Zhang-Suen thinning","SciPy","OpenCV"]),
-    ("Graph & Analysis", PURPLE, ["NetworkX","Betweenness centrality","Union-Find / MST","PyG (opt.)"]),
-    ("Visualization & UI", CYAN, ["Streamlit","Folium · Leaflet.js","CartoDB DarkMatter","Plotly","Matplotlib"]),
-    ("Data Sources", AMBER, ["Sentinel-2","LISS-IV","Cartosat-3","OpenStreetMap","SpaceNet","DeepGlobe"]),
+    ("Data & Imagery", ORANGE, ["NumPy","OpenCV","Pillow","Albumentations","Web-Mercator tiling"]),
+    ("Segmentation (DL)", TEAL, ["PyTorch","SMP · U-Net/ResNet34","D4 TTA","Mixed-Precision (AMP)","clDice loss"]),
+    ("Skeleton & Graph", BLUE, ["scikit-image · Zhang-Suen","sknw","NetworkX","SciPy cKDTree"]),
+    ("Resilience & Analysis", PURPLE, ["Betweenness (k-sampled)","Union-Find healing","Flood-DEM ablation","Demand weighting"]),
+    ("Dashboard & Backend", CYAN, ["Vanilla JS","Leaflet.js","Three.js (WebGL)","Apache ECharts","Python http.server"]),
+    ("Data Sources", AMBER, ["Esri World Imagery","OpenStreetMap / Overpass","AWS DEM","DeepGlobe","LISS-IV / Cartosat (NIR-ready)"]),
 ]
 rows = len(groups); rgap = 0.14
 rh = (BODY_BOT - CONTENT_TOP - rgap*(rows-1)) / rows
@@ -447,28 +447,33 @@ for name, col, chips in groups:
 
 # ===== SLIDE 9 : Estimated cost =====
 s9 = sl[8]; del_nonbg(s9)
-content_title(s9, "Estimated Implementation Cost", sub="Fully open-data, open-source — runs on existing hardware")
+content_title(s9, "Honest Cost Breakdown", sub="Open data & open source — the only real recurring cost is the GPU that powers live inference")
 rows = [
-    ("Satellite imagery", "Open Sentinel-2 / LISS-IV; Cartosat-3 provided during hackathon", "₹0"),
-    ("Ground truth & datasets", "OpenStreetMap, SpaceNet, DeepGlobe — all open", "₹0"),
-    ("Software stack", "100% open-source; CartoDB DarkMatter needs no API key", "₹0"),
-    ("Compute", "Training on team’s RTX 3050 laptop GPU; analysis + UI on CPU", "₹0"),
-    ("Demo hosting (optional)", "Streamlit Community Cloud free tier", "₹0"),
+    ("Satellite & map imagery", "Esri tiles · OpenStreetMap / Overpass · AWS DEM — open, no API key", "₹0", TEAL),
+    ("Training & validation data", "DeepGlobe (training) · OpenStreetMap (validation) — open", "₹0", TEAL),
+    ("Model training", "One-time, a few GPU-hours on the team's own laptop GPU", "₹0", TEAL),
+    ("Live inference — GPU backend", "≈ 50 s / scene; cloud GPU ≈ ₹1–2 per scene, or ₹0 on an owned GPU", "≈₹1–2", AMBER),
+    ("Static dashboard hosting", "Vanilla-JS bundle on Vercel / Netlify free tier — no server", "₹0", TEAL),
 ]
 ry = CONTENT_TOP + 0.05
-rh = 0.56; rgap = 0.13
-for label, detail, cost in rows:
+rh = 0.52; rgap = 0.115
+for label, detail, cost, col in rows:
     add_box(s9, LEFT, ry, WIDTH-1.7, rh, fill=LIGHT, line=BORDER, radius=0.08)
     add_text(s9, LEFT+0.22, ry+0.07, WIDTH-1.7-2.6, rh-0.12,
              [{"t":label,"bold":True,"size":12,"color":NAVY,"space_after":1},
-              {"t":detail,"size":9.5,"color":GREY}], anchor=MSO_ANCHOR.MIDDLE)
-    cb = add_box(s9, RIGHT-1.55, ry, 1.55, rh, fill=TEAL, line=None, radius=0.10)
-    box_text(cb, [{"t":cost}], size=18, color=WHITE, bold=True, font=HFONT, align=PP_ALIGN.CENTER)
+              {"t":detail,"size":9.3,"color":GREY}], anchor=MSO_ANCHOR.MIDDLE)
+    cb = add_box(s9, RIGHT-1.55, ry, 1.55, rh, fill=col, line=None, radius=0.10)
+    box_text(cb, [{"t":cost}], size=(18 if len(cost) <= 3 else 15), color=WHITE, bold=True, font=HFONT, align=PP_ALIGN.CENTER)
     ry += rh + rgap
-# total callout
+# honest bottom line
 tb = add_box(s9, LEFT, ry+0.02, WIDTH, BODY_BOT-(ry+0.02), fill=NAVY, line=None, radius=0.06)
-box_text(tb, [{"t":[{"t":"TOTAL ESTIMATED COST   ","bold":True,"size":15,"color":WHITE},
-                    {"t":"≈  ₹0 / negligible","bold":True,"size":17,"color":ORANGE}]}], align=PP_ALIGN.CENTER)
+box_text(tb, [
+    {"t":[{"t":"DEV & DEMO   ","bold":True,"size":15,"color":WHITE},
+          {"t":"≈  ₹0","bold":True,"size":18,"color":ORANGE},
+          {"t":"   ·   open data · owned GPU · free static hosting","size":11,"color":CARD2}],
+     "align":PP_ALIGN.CENTER,"space_after":3},
+    {"t":"At scale the only recurring cost is the GPU for live inference — ≈ ₹1–2 per analysed scene on a cloud GPU, ₹0 on owned hardware.",
+     "size":10.5,"color":CARD2,"align":PP_ALIGN.CENTER}], anchor=MSO_ANCHOR.MIDDLE)
 
 prs.save(OUT)
 print("Saved", OUT, "with", len(prs.slides.__iter__.__self__._sldIdLst), "slides")
