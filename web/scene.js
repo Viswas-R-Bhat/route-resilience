@@ -3,7 +3,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const SIZE = 10;                 // world size of the satellite plane
 const TIER = { critical: 0xff6b5e, important: 0xf0b75e, normal: 0x5ec8a0 };
-const HEAL = 0xf5c06b, OFF = 0x5a6172;
+const HEAL = 0xf5c06b, CANOPY = 0x7ed957, OFF = 0x5a6172;
+const healColor = e => e.hk === "canopy" ? CANOPY : HEAL;
+// confidence -> glow: inferred bridges glow dimmer (geom=med, canopy=low, saturated-canopy=vlow)
+const CONF_GLOW = { high: .55, med: .5, low: .32, vlow: .18 };
+const healGlow = e => CONF_GLOW[e.conf] ?? .5;
 
 /* ============================================================
  *  Animated space + rocket-launch background (decorative)
@@ -154,9 +158,9 @@ export class RoadScene {
       const t = e.bc / emax;
       const rad = 0.012 + t * 0.05;
       const tube = new THREE.TubeGeometry(curve, Math.max(2, pts.length * 2), rad, 6, false);
-      const color = e.healed ? HEAL : this._heatColor(t);
-      const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: e.healed ? .5 : .35 + t * .6, roughness: .4 });
-      const mesh = new THREE.Mesh(tube, mat); mesh.userData = { u: e.u, v: e.v, t, healed: e.healed };
+      const color = e.healed ? healColor(e) : this._heatColor(t);
+      const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: e.healed ? healGlow(e) : .35 + t * .6, roughness: .4 });
+      const mesh = new THREE.Mesh(tube, mat); mesh.userData = { u: e.u, v: e.v, t, healed: e.healed, hk: e.hk, conf: e.conf };
       this.edges.add(mesh); this.edgeObjs.push(mesh);
     }
     // nodes
@@ -191,10 +195,11 @@ export class RoadScene {
     }
     for (const e of this.edgeObjs) {
       const dead = disabled.has(e.userData.u) || disabled.has(e.userData.v);
-      const base = e.userData.healed ? HEAL : this._heatColor(this.heat ? e.userData.t : 0.0);
+      const base = e.userData.healed ? healColor(e.userData) : this._heatColor(this.heat ? e.userData.t : 0.0);
       e.material.color.set(dead ? OFF : base);
       e.material.emissive.set(dead ? 0x0b0f18 : base);
-      e.material.emissiveIntensity = dead ? .05 : (this.heat ? .35 + e.userData.t * .6 : .3);
+      e.material.emissiveIntensity = dead ? .05
+        : (e.userData.healed ? healGlow(e.userData) : (this.heat ? .35 + e.userData.t * .6 : .3));
       e.material.opacity = dead ? .5 : 1; e.material.transparent = dead;
     }
   }

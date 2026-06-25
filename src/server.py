@@ -55,7 +55,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         sub(["src/fetch_geo_tile.py", "--lat", str(lat), "--lon", str(lon),
              "--zoom", "18", "--grid", str(grid), "--stem", stem, "--out", "runs/geo"])
         sub(["src/run_pipeline.py", "--image", "runs/geo/%s_sat.png" % stem, "--ckpt", CKPT,
-             "--device", "cuda", "--out", "runs/geo", "--thr", "0.35", "--max-gap", "95", "--ang-tol", "50"])
+             "--device", "cuda", "--out", "runs/geo", "--thr", "0.45", "--max-gap", "95", "--ang-tol", "50"])
         sub(["src/export_web_geo.py", "--stem", stem, "--label", "Live · %.4f,%.4f" % (lat, lon), "--no-manifest"])
         # tidy heavy intermediates for ephemeral live tiles (page only needs web/data/<stem>.{json,jpg})
         if stem.startswith("live_"):

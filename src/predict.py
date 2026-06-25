@@ -19,12 +19,34 @@ from torch.amp import autocast
 sys.path.insert(0, os.path.dirname(__file__))
 import model as M
 from augment import IMAGENET_MEAN, IMAGENET_STD
+from phase3_heal import canopy_evidence
+from scipy.ndimage import binary_propagation
 
 
 def _hann2d(n):
     w = np.hanning(n)
     win = np.outer(w, w)
     return (win / win.max()).astype(np.float32)
+
+
+def hysteresis_mask(prob, image_rgb=None, thr_hi=0.45, thr_lo=None, canopy_lo=None):
+    """Double-threshold road extraction for MAXIMUM connected coverage without noise.
+
+    Keep confident road 'seeds' (prob >= thr_hi), then grow into faint pixels (prob >= thr_lo)
+    ONLY where they connect to a seed — this recovers occluded road continuations (which fade
+    to weak probability under canopy/shadow) while dropping isolated low-confidence blobs.
+    Under the adaptive canopy mask the low threshold drops further (canopy_lo), since roads
+    beneath trees are the faintest signal of all. Falls back to a single threshold if asked.
+    """
+    hi = thr_hi
+    lo = thr_lo if thr_lo is not None else max(0.15, thr_hi - 0.22)
+    seed = prob >= hi
+    cand = prob >= lo
+    ev = canopy_evidence(image_rgb) if image_rgb is not None else None
+    if ev is not None:
+        clo = canopy_lo if canopy_lo is not None else max(0.08, lo - 0.08)
+        cand = cand | ((prob >= clo) & ev["dense"])          # reach deeper under canopy
+    return binary_propagation(seed, mask=cand).astype(np.uint8)
 
 
 def _fwd_prob(net, t, device):
@@ -57,7 +79,8 @@ def _d4_prob(net, t, device):
 
 
 @torch.no_grad()
-def predict_full(net, image_rgb, device, tile=512, overlap=64, thr=0.475, tta=True):
+def predict_full(net, image_rgb, device, tile=512, overlap=64, thr=0.475, tta=True,
+                 hysteresis=True, thr_lo=None):
     H, W = image_rgb.shape[:2]
     step = tile - overlap
     mean = np.array(IMAGENET_MEAN, np.float32); std = np.array(IMAGENET_STD, np.float32)
@@ -78,7 +101,10 @@ def predict_full(net, image_rgb, device, tile=512, overlap=64, thr=0.475, tta=Tr
             prob[y:y + ph, x:x + pw] += (p * win)[:ph, :pw]
             wsum[y:y + ph, x:x + pw] += win[:ph, :pw]
     prob /= np.maximum(wsum, 1e-6)
-    mask = (prob > thr).astype(np.uint8)
+    if hysteresis:
+        mask = hysteresis_mask(prob, image_rgb, thr_hi=thr, thr_lo=thr_lo)
+    else:
+        mask = (prob > thr).astype(np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
                             cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
     return mask, prob

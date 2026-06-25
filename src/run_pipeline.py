@@ -28,7 +28,7 @@ def main():
     ap.add_argument("--ckpt", default="C:/Users/VISWAS/route_data/runs/phase1_full/best.pt")
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
     ap.add_argument("--out", default="runs/pipeline")
-    ap.add_argument("--thr", type=float, default=0.475)   # shipped recipe: IoU-optimal threshold
+    ap.add_argument("--thr", type=float, default=0.45)    # hysteresis SEED (confident) threshold; faint roads grow from it
     ap.add_argument("--no-tta", action="store_true", help="disable 8-way D4 TTA")
     ap.add_argument("--top-k", type=int, default=8)
     ap.add_argument("--max-gap", type=float, default=50)
@@ -59,14 +59,22 @@ def main():
     raw_stats = graph_stats(G)
     print(f"[2/4] graph: {raw_stats['nodes']} nodes / {raw_stats['edges']} edges / {raw_stats['components']} components")
 
-    # ---- Phase 3: healing ----
-    H, healed = heal_graph(G, args.max_gap, args.ang_tol)
+    # ---- Phase 3: healing (canopy-aware when the RGB tile is available) ----
+    H, healed = heal_graph(G, args.max_gap, args.ang_tol, rgb=img)
     conn = connectivity_report(G, H)
-    print(f"[3/4] healed: +{healed} bridges | components {conn['components_before']}->{conn['components_after']} | "
+    n_canopy = sum(d.get("heal_kind") == "canopy" for _, _, d in H.edges(data=True))
+    n_geom = sum(d.get("heal_kind") == "geom" for _, _, d in H.edges(data=True))
+    scene_green = H.graph.get("canopy_frac_scene", 0.0)
+    saturated = H.graph.get("canopy_saturated", False)
+    print(f"[3/4] healed: +{healed} bridges ({n_canopy} under canopy / {n_geom} open) | "
+          f"scene canopy {scene_green*100:.0f}%{' [SATURATED-conservative]' if saturated else ''} | "
+          f"components {conn['components_before']}->{conn['components_after']} | "
           f"LCC {conn['lcc_frac_before']*100:.0f}%->{conn['lcc_frac_after']*100:.0f}%")
 
     # ---- Phase 4: criticality + resilience ----
-    report = dict(stem=stem, raw_graph=raw_stats, connectivity=conn, healed_bridges=healed)
+    report = dict(stem=stem, raw_graph=raw_stats, connectivity=conn, healed_bridges=healed,
+                  healed_canopy=n_canopy, healed_geom=n_geom,
+                  scene_canopy_frac=scene_green, canopy_saturated=bool(saturated))
     if H.number_of_nodes() >= 4:
         ranked = compute_centrality(H)
         cls = classify_nodes(H)
@@ -96,13 +104,14 @@ def main():
             color = (min(1, .1 + eb), max(0, .8 - eb), max(0, .5 - eb))
             if d.get("healed"):
                 p1 = H.nodes[u]["pos"]; p2 = H.nodes[v]["pos"]
-                ax[1, 0].plot([p1[0], p2[0]], [p1[1], p2[1]], "--", color="#ffcc00", lw=2)
+                hc = "#7ed957" if d.get("heal_kind") == "canopy" else "#ffcc00"
+                ax[1, 0].plot([p1[0], p2[0]], [p1[1], p2[1]], "--", color=hc, lw=2)
             else:
                 p = d["pts"]; ax[1, 0].plot(p[:, 1], p[:, 0], "-", color=color, lw=1 + 5 * eb)
         cmap = {"critical": "#ff2b2b", "important": "#ffb347", "normal": "#00e6bd"}
         for n, d in H.nodes(data=True):
             x, y = d["pos"]; ax[1, 0].plot(x, y, "o", color=cmap[cls[n]], ms={"critical":8,"important":5,"normal":3}[cls[n]], mec="white", mew=.4)
-    ax[1, 0].set_title("criticality map (red=gatekeeper, gold=healed)"); ax[1, 0].axis("off")
+    ax[1, 0].set_title("criticality map (red=gatekeeper, gold=bridged, green=under canopy)"); ax[1, 0].axis("off")
     if abl:
         xs = [r["step"] for r in abl]
         ax[1, 1].plot(xs, [r["resilience_index"] for r in abl], "o-", color="#2e6fe0", lw=2, label="Resilience Index")

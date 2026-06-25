@@ -62,12 +62,15 @@ def export_geo(stem, label):
         ll = [list(px_to_latlng(px, py, b, W, H)) for px, py in pts]
         edges.append(dict(u=int(u), v=int(v), bc=round(float(d.get("edge_betweenness", 0.0)), 4),
                           w=round(float(d.get("weight", 1.0)), 1), healed=bool(d.get("healed", False)),
-                          pts=pts, ll=ll))
+                          hk=d.get("heal_kind"), conf=d.get("conf"), pts=pts, ll=ll))
     ranked = sorted(nodes, key=lambda n: n["bc"], reverse=True)
     out = dict(stem=stem, label=label, geo=True, bounds=b, img_w=W, img_h=H, tex=f"{stem}.jpg",
                res_m_per_px=geo.get("res_m_per_px"),
                stats=report.get("raw_graph", {}), connectivity=report.get("connectivity", {}),
                healed_bridges=report.get("healed_bridges", 0),
+               healed_canopy=report.get("healed_canopy", 0), healed_geom=report.get("healed_geom", 0),
+               scene_canopy_frac=report.get("scene_canopy_frac", 0.0),
+               canopy_saturated=bool(report.get("canopy_saturated", False)),
                nodes=nodes, edges=edges,
                gatekeepers=[dict(id=n["id"], bc=n["bc"], tier=n["tier"]) for n in ranked[:10]],
                resilience=report.get("resilience", []))

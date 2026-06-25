@@ -1,71 +1,75 @@
 {
   "stem": "blr_sector",
   "raw_graph": {
-    "nodes": 923,
-    "edges": 779,
-    "components": 184,
-    "lcc_nodes": 449,
-    "lcc_fraction": 0.4865,
-    "total_length_px": 123464.3
+    "nodes": 927,
+    "edges": 855,
+    "components": 130,
+    "lcc_nodes": 566,
+    "lcc_fraction": 0.6106,
+    "total_length_px": 130833.6
   },
   "connectivity": {
-    "components_before": 184,
-    "components_after": 102,
-    "components_merged": 82,
-    "lcc_frac_before": 0.4865,
-    "lcc_frac_after": 0.6078,
-    "healed_edges": 82
+    "components_before": 130,
+    "components_after": 70,
+    "components_merged": 60,
+    "lcc_frac_before": 0.6106,
+    "lcc_frac_after": 0.7443,
+    "healed_edges": 60
   },
-  "healed_bridges": 82,
+  "healed_bridges": 60,
+  "healed_canopy": 4,
+  "healed_geom": 56,
+  "scene_canopy_frac": 0.619,
+  "canopy_saturated": true,
   "gatekeepers": [
     {
-      "node": 451,
-      "betweenness": 0.1349,
+      "node": 441,
+      "betweenness": 0.1836,
       "tier": "critical"
     },
     {
-      "node": 452,
-      "betweenness": 0.1284,
+      "node": 613,
+      "betweenness": 0.1509,
       "tier": "critical"
     },
     {
-      "node": 426,
-      "betweenness": 0.1116,
+      "node": 605,
+      "betweenness": 0.1446,
       "tier": "critical"
     },
     {
-      "node": 330,
-      "betweenness": 0.1101,
+      "node": 307,
+      "betweenness": 0.1384,
       "tier": "critical"
     },
     {
-      "node": 507,
-      "betweenness": 0.1,
+      "node": 595,
+      "betweenness": 0.1346,
       "tier": "critical"
     },
     {
-      "node": 471,
-      "betweenness": 0.0996,
-      "tier": "critical"
-    },
-    {
-      "node": 325,
-      "betweenness": 0.0985,
-      "tier": "critical"
-    },
-    {
-      "node": 615,
-      "betweenness": 0.0884,
+      "node": 315,
+      "betweenness": 0.1333,
       "tier": "critical"
     },
     {
       "node": 603,
-      "betweenness": 0.0791,
+      "betweenness": 0.1333,
       "tier": "critical"
     },
     {
-      "node": 598,
-      "betweenness": 0.0781,
+      "node": 606,
+      "betweenness": 0.1328,
+      "tier": "critical"
+    },
+    {
+      "node": 415,
+      "betweenness": 0.1309,
+      "tier": "critical"
+    },
+    {
+      "node": 213,
+      "betweenness": 0.1301,
       "tier": "critical"
     }
   ],
@@ -75,72 +79,72 @@
       "removed": null,
       "betweenness": null,
       "resilience_index": 1.0,
-      "global_efficiency": 0.000213,
+      "global_efficiency": 0.000298,
       "lcc_fraction": 1.0
     },
     {
       "step": 1,
-      "removed": 451,
-      "betweenness": 0.1349,
-      "resilience_index": 0.9449,
-      "global_efficiency": 0.000202,
-      "lcc_fraction": 0.9982
+      "removed": 441,
+      "betweenness": 0.1836,
+      "resilience_index": 0.9556,
+      "global_efficiency": 0.000284,
+      "lcc_fraction": 0.9986
     },
     {
       "step": 2,
-      "removed": 434,
-      "betweenness": 0.1071,
-      "resilience_index": 0.8755,
-      "global_efficiency": 0.000187,
-      "lcc_fraction": 0.984
+      "removed": 613,
+      "betweenness": 0.1705,
+      "resilience_index": 0.904,
+      "global_efficiency": 0.000269,
+      "lcc_fraction": 0.9971
     },
     {
       "step": 3,
-      "removed": 332,
-      "betweenness": 0.1822,
-      "resilience_index": 0.7114,
-      "global_efficiency": 0.000152,
-      "lcc_fraction": 0.5633
+      "removed": 700,
+      "betweenness": 0.2077,
+      "resilience_index": 0.7792,
+      "global_efficiency": 0.000232,
+      "lcc_fraction": 0.7464
     },
     {
       "step": 4,
-      "removed": 605,
-      "betweenness": 0.0585,
-      "resilience_index": 0.6399,
-      "global_efficiency": 0.000137,
-      "lcc_fraction": 0.4189
+      "removed": 307,
+      "betweenness": 0.0998,
+      "resilience_index": 0.7517,
+      "global_efficiency": 0.000224,
+      "lcc_fraction": 0.7449
     },
     {
       "step": 5,
-      "removed": 215,
-      "betweenness": 0.0322,
-      "resilience_index": 0.5891,
-      "global_efficiency": 0.000126,
-      "lcc_fraction": 0.3119
+      "removed": 163,
+      "betweenness": 0.0994,
+      "resilience_index": 0.7072,
+      "global_efficiency": 0.00021,
+      "lcc_fraction": 0.7435
     },
     {
       "step": 6,
-      "removed": 615,
-      "betweenness": 0.0203,
-      "resilience_index": 0.5537,
-      "global_efficiency": 0.000118,
-      "lcc_fraction": 0.2781
+      "removed": 602,
+      "betweenness": 0.1478,
+      "resilience_index": 0.6058,
+      "global_efficiency": 0.00018,
+      "lcc_fraction": 0.4522
     },
     {
       "step": 7,
-      "removed": 210,
-      "betweenness": 0.0137,
-      "resilience_index": 0.5188,
-      "global_efficiency": 0.000111,
-      "lcc_fraction": 0.2496
+      "removed": 332,
+      "betweenness": 0.0572,
+      "resilience_index": 0.5364,
+      "global_efficiency": 0.00016,
+      "lcc_fraction": 0.2884
     },
     {
       "step": 8,
-      "removed": 860,
-      "betweenness": 0.0119,
-      "resilience_index": 0.4991,
-      "global_efficiency": 0.000107,
-      "lcc_fraction": 0.1925
+      "removed": 317,
+      "betweenness": 0.0218,
+      "resilience_index": 0.5051,
+      "global_efficiency": 0.00015,
+      "lcc_fraction": 0.2536
     }
   ]
 }

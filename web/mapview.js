@@ -3,7 +3,11 @@
  * Renders the real criticality graph at true lat/lon over a dark basemap + the
  * satellite imagery the model actually ran on. Requires global L (Leaflet). */
 const TIER = { critical: "#ff6b5e", important: "#f0b75e", normal: "#5ec8a0" };
-const HEAL = "#f5c06b", OFF = "#5a6172";
+const HEAL = "#f5c06b", CANOPY = "#7ed957", OFF = "#5a6172";
+const healColor = e => e.healed ? (e.hk === "canopy" ? CANOPY : HEAL) : null;
+// confidence -> opacity: inferred bridges look fainter (visible=high, geom=med, canopy=low, saturated-canopy=vlow)
+const CONF_OP = { high: .9, med: .85, low: .66, vlow: .48 };
+const healOpacity = e => e.healed ? (CONF_OP[e.conf] ?? .85) : .9;
 
 export class MapView {
   constructor(elId, onPick) {
@@ -37,9 +41,9 @@ export class MapView {
     for (const e of data.edges) {
       const t = e.bc / emax;
       const latlngs = (e.ll && e.ll.length >= 2) ? e.ll : [this.pos[e.u], this.pos[e.v]];
-      const base = e.healed ? HEAL : this._heat(t);
-      const pl = L.polyline(latlngs, { color: base, weight: 2 + 4 * t, opacity: .9 });
-      pl.userData = { u: e.u, v: e.v, t, healed: e.healed };
+      const base = healColor(e) || this._heat(t);
+      const pl = L.polyline(latlngs, { color: base, weight: 2 + 4 * t, opacity: healOpacity(e) });
+      pl.userData = { u: e.u, v: e.v, t, healed: e.healed, hk: e.hk, conf: e.conf };
       pl.addTo(this.edgeLayer); this.edgeObjs.push(pl);
     }
     const bcmax = Math.max(1e-6, ...data.nodes.map(n => n.bc));
@@ -63,8 +67,8 @@ export class MapView {
     }
     for (const e of this.edgeObjs) {
       const dead = disabled.has(e.userData.u) || disabled.has(e.userData.v);
-      const base = e.userData.healed ? HEAL : (this.heat ? this._heat(e.userData.t) : "#5ec8a0");
-      e.setStyle({ color: dead ? OFF : base, opacity: dead ? .4 : .9 });
+      const base = healColor(e.userData) || (this.heat ? this._heat(e.userData.t) : "#5ec8a0");
+      e.setStyle({ color: dead ? OFF : base, opacity: dead ? .4 : healOpacity(e.userData) });
     }
   }
 
