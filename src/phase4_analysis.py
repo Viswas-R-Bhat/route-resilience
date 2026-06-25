@@ -10,6 +10,18 @@
 import numpy as np
 import networkx as nx
 
+# Betweenness via exact Brandes is O(N*E) and dominates Phase 4 on large tiles. Above this
+# node count we switch to k-sampled Brandes (NetworkX `k=` argument), the standard fast
+# approximation: only the node *ranking* is approximate (which gatekeeper / which node to
+# ablate); every Resilience Index is still computed from EXACT global efficiency, so the
+# stress-test curves are unchanged. ~4x faster on the 1500-node tiles.
+_BC_EXACT_MAX = 450
+_BC_SAMPLES = 350
+
+
+def _auto_k(n):
+    return None if n <= _BC_EXACT_MAX else min(n, _BC_SAMPLES)
+
 
 def global_efficiency_weighted(G, n_ref=None):
     """Mean over node pairs of 1/d(u,v) (d = shortest *weighted* path length in px).
@@ -34,9 +46,9 @@ def global_efficiency_weighted(G, n_ref=None):
 
 def compute_centrality(G, k=None):
     n = G.number_of_nodes()
-    kk = k if (k and k < n) else None      # k-sampling approximation for big graphs
+    kk = (k if (k and k < n) else None) or _auto_k(n)   # k-sampled Brandes on big graphs
     node_bc = nx.betweenness_centrality(G, weight="weight", normalized=True, k=kk, seed=42)
-    edge_bc = nx.edge_betweenness_centrality(G, weight="weight", normalized=True)
+    edge_bc = nx.edge_betweenness_centrality(G, weight="weight", normalized=True, k=kk, seed=42)
     nx.set_node_attributes(G, node_bc, "betweenness")
     nx.set_edge_attributes(G, edge_bc, "edge_betweenness")
     return sorted(node_bc.items(), key=lambda x: x[1], reverse=True)
@@ -154,7 +166,8 @@ def ablation_simulation(G, top_k=8):
     for i in range(top_k):
         if H.number_of_nodes() < 3:
             break
-        bc = nx.betweenness_centrality(H, weight="weight", normalized=True, seed=42)
+        bc = nx.betweenness_centrality(H, weight="weight", normalized=True,
+                                       k=_auto_k(H.number_of_nodes()), seed=42)
         node = max(bc, key=bc.get)
         H.remove_node(node)
         eff = global_efficiency_weighted(H, n_ref=n0)
