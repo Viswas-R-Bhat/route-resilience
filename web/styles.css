@@ -98,6 +98,9 @@ body{
 /* ---------- main grid ---------- */
 .grid{display:grid;grid-template-columns:1fr 392px;gap:18px;
   padding:18px clamp(20px,5vw,56px) 10px;align-items:start}
+.analysis{position:relative;z-index:2;max-width:1320px;margin-inline:auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;
+  padding:8px clamp(20px,5vw,56px) 10px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   backdrop-filter:blur(var(--blur)) saturate(160%);overflow:hidden;box-shadow:var(--e1),var(--glass-hi)}
 .card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;
@@ -200,7 +203,7 @@ input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(
 .gk-list::-webkit-scrollbar-track{background:transparent}
 
 @media (max-width:1024px){
-  .grid{grid-template-columns:1fr} .kpis{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:1fr} .analysis{grid-template-columns:1fr} .kpis{grid-template-columns:repeat(2,1fr)}
   .scene-wrap{aspect-ratio:1/0.82}
   .topbar{flex-wrap:wrap}
 }
