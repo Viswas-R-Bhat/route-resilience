@@ -97,7 +97,7 @@ body{
 
 /* ---------- main grid ---------- */
 .grid{display:grid;grid-template-columns:1fr 392px;gap:18px;
-  padding:18px clamp(20px,5vw,56px) 10px;align-items:start}
+  padding:18px clamp(20px,5vw,56px) 10px;align-items:stretch}
 .analysis{position:relative;z-index:2;max-width:1320px;margin-inline:auto;
   display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;
   padding:8px clamp(20px,5vw,56px) 10px}
@@ -117,7 +117,8 @@ body{
 .ghost-btn.full{width:100%;margin-top:16px;text-align:center;padding:11px}
 
 /* ---------- 3D scene ---------- */
-.scene-wrap{position:relative;aspect-ratio:1/0.72;min-height:440px}
+.scene-card{display:flex;flex-direction:column}
+.scene-wrap{position:relative;flex:1;min-height:440px}
 #scene-canvas{width:100%;height:100%;display:block;cursor:grab}
 #scene-canvas:active{cursor:grabbing}
 #map{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:1;background:var(--bg-2)}
