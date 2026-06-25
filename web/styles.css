@@ -99,8 +99,9 @@ body{
 .grid{display:grid;grid-template-columns:1fr 392px;gap:18px;
   padding:18px clamp(20px,5vw,56px) 10px;align-items:start}
 .analysis{position:relative;z-index:2;max-width:1320px;margin-inline:auto;
-  display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;
+  display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;
   padding:8px clamp(20px,5vw,56px) 10px}
+.analysis:has(.osm-card[hidden]){grid-template-columns:1fr}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   backdrop-filter:blur(var(--blur)) saturate(160%);overflow:hidden;box-shadow:var(--e1),var(--glass-hi)}
 .card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;
@@ -138,8 +139,10 @@ body{
 .flood-sub{margin-top:4px;color:var(--flood)}
 .sm-btn{font-size:.66rem;padding:3px 9px;margin-left:auto}
 .card-head{display:flex;align-items:center;gap:10px}
-.osm-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-.osm-metric{display:flex;flex-direction:column;gap:1px;padding:9px 11px;border-radius:10px;
+.osm-card{display:flex;flex-direction:column}
+.osm-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;
+  flex:1;grid-auto-rows:1fr;padding:0 22px 22px}
+.osm-metric{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:14px 16px;border-radius:12px;
   background:rgba(255,255,255,.03);border:1px solid var(--border)}
 .om-val{font-size:1.5rem;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .om-label{font-size:.72rem;color:var(--text);margin-top:3px}
