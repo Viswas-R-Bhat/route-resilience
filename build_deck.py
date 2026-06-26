@@ -219,7 +219,7 @@ lx, lw = LEFT, 4.55
 add_text(s3, lx, CONTENT_TOP+0.60, lw, 0.3, [{"t":"How we are different"}], size=13.5, color=BLUE, bold=True, font=HFONT)
 usps = [
     ("Occlusion-robust extraction", "Canopy-aware hysteresis grows faint roads from confident seeds, reaching deeper under tree cover to recover occluded segments.", TEAL),
-    ("Evidence-based topological healing", "Union-Find bridges gaps only where evidence agrees the road continues — the model's own sub-threshold confidence, an Excess-Green canopy mask and trajectory alignment — each tagged high/med/low, never a blind guess.", BLUE),
+    ("Evidence-based topological healing", "Union-Find bridges gaps — endpoint-pairs AND mid-edge T-junctions — only where evidence agrees the road continues: the model's sub-threshold confidence, an Excess-Green canopy mask and trajectory alignment, each tagged high/med/low.", BLUE),
     ("Predictive resilience: failure & flood", "Weighted-betweenness ablation, DEM flood-submersion and demand-weighted criticality quantify systemic collapse.", ORANGE),
     ("Validated against OSM ground truth", "A topological-accuracy benchmark scores the graph vs OpenStreetMap: recall, path-length error and routing match.", PURPLE),
 ]
@@ -265,7 +265,7 @@ content_title(s4, "Key Features")
 feats = [
     ("Occlusion-robust segmentation", "U-Net/ResNet34 with canopy-aware hysteresis thresholding recovers roads under canopy & shadow.", TEAL),
     ("Topological reconstruction", "Skeletonize → graph → Union-Find healing yields a routable weighted vector network.", BLUE),
-    ("Evidence-based gap healing", "Model soft-confidence + Excess-Green canopy + trajectory alignment bridge occlusion gaps, each tagged high/med/low.", TEAL),
+    ("Evidence-based gap healing", "Endpoint + mid-edge T-junction bridges gated by model soft-confidence, Excess-Green canopy & trajectory — each tagged high/med/low.", TEAL),
     ("Gatekeeper-node detection", "Weighted betweenness (k-sampled at scale) maps critical intersections & weakest links.", ORANGE),
     ("Flood & failure stress-test", "DEM-driven flood submersion + node ablation drive a live Resilience Index.", RED),
     ("Demand-weighted criticality", "Betweenness × local road-density surfaces nodes whose failure strands real travel.", AMBER),
