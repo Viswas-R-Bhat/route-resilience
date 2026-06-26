@@ -32,7 +32,7 @@ def run(stem, lat, lon, label, grid=16):
                     "--zoom", "18", "--grid", str(grid), "--stem", stem, "--out", "runs/geo"], check=True)
     subprocess.run([PY, "src/run_pipeline.py", "--image", f"runs/geo/{stem}_sat.png", "--ckpt", CKPT,
                     "--device", "cuda", "--out", "runs/geo", "--thr", "0.35", "--max-gap", "95",
-                    "--ang-tol", "50"], check=True)
+                    "--ang-tol", "50", "--multiscale", "--no-tta"], check=True)  # multiscale (recovers roads missed at 1x) replaces TTA's diversity
     subprocess.run([PY, "src/export_web_geo.py", "--stem", stem, "--label", label, "--no-manifest"], check=True)
 
 

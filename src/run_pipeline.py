@@ -31,6 +31,12 @@ def main():
     ap.add_argument("--out", default="runs/pipeline")
     ap.add_argument("--thr", type=float, default=0.45)    # hysteresis SEED (confident) threshold; faint roads grow from it
     ap.add_argument("--no-tta", action="store_true", help="disable 8-way D4 TTA")
+    ap.add_argument("--multiscale", action="store_true",
+                    help="fuse inference over several image scales to recover roads missed at 1x")
+    ap.add_argument("--scales", type=float, nargs="+", default=[0.6, 0.8, 1.0, 1.3, 1.6],
+                    help="scales for --multiscale")
+    ap.add_argument("--ms-fuse", default="max", choices=["max", "mean"],
+                    help="multiscale fusion: max=recall-first, mean=balanced")
     ap.add_argument("--top-k", type=int, default=8)
     ap.add_argument("--max-gap", type=float, default=50)
     ap.add_argument("--ang-tol", type=float, default=35)
@@ -51,9 +57,15 @@ def main():
         img = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGB)
         stem = os.path.splitext(os.path.basename(args.image))[0].replace("_sat", "")
         net = predict.load_net(args.ckpt, args.device)
-        print(f"[1/4] segmenting on {args.device} (D4 TTA={not args.no_tta}, thr={args.thr}) ...")
-        mask, prob = predict.predict_full(net, img, args.device, tile=512, overlap=64,
-                                          thr=args.thr, tta=not args.no_tta)
+        if args.multiscale:
+            print(f"[1/4] segmenting on {args.device} (multiscale {args.scales} {args.ms_fuse}, "
+                  f"D4 TTA={not args.no_tta}, thr={args.thr}) ...")
+            mask, prob = predict.predict_multiscale(net, img, args.device, scales=tuple(args.scales),
+                                                    thr=args.thr, tta=not args.no_tta, fuse=args.ms_fuse)
+        else:
+            print(f"[1/4] segmenting on {args.device} (D4 TTA={not args.no_tta}, thr={args.thr}) ...")
+            mask, prob = predict.predict_full(net, img, args.device, tile=512, overlap=64,
+                                              thr=args.thr, tta=not args.no_tta)
     cv2.imwrite(os.path.join(args.out, f"{stem}_mask.png"), mask * 255)
     if img is not None:
         cv2.imwrite(os.path.join(args.out, f"{stem}_sat.png"), cv2.cvtColor(img, cv2.COLOR_RGB2BGR))

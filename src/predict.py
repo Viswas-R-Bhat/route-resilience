@@ -113,6 +113,44 @@ def predict_full(net, image_rgb, device, tile=512, overlap=64, thr=0.475, tta=Tr
     return mask, prob
 
 
+@torch.no_grad()
+def predict_multiscale(net, image_rgb, device, scales=(0.6, 0.8, 1.0, 1.3, 1.6),
+                       tile=512, overlap=64, thr=0.40, tta=True, fuse="max",
+                       thr_lo=None, channels=None):
+    """Run inference at several image scales and fuse the probability maps to DISCOVER roads
+    the single-scale model misses.
+
+    A road whose width sits outside the receptive field at 1x (narrow residential streets,
+    or wide arterials) is often clearly detected once the image is up- or down-scaled. We run
+    each scale, resize its prob back to native resolution, and combine:
+        fuse="max"  -> recall-first: a road seen at ANY scale survives (best for "find more roads"),
+        fuse="mean" -> balanced: trades a little recall for precision.
+    Then ONE hysteresis threshold + closing yields the mask. Returns (mask, prob_fused).
+
+    Roads fully under tree canopy stay invisible at every scale (an RGB limit, not a scale issue);
+    this recovers the OPEN-ground misses, which is where most of the recall gap lives.
+    """
+    H, W = image_rgb.shape[:2]
+    probs = []
+    for s in scales:
+        if abs(s - 1.0) < 1e-6:
+            im = image_rgb
+        else:
+            interp = cv2.INTER_AREA if s < 1.0 else cv2.INTER_CUBIC
+            im = cv2.resize(image_rgb, (max(tile, int(round(W * s))), max(tile, int(round(H * s)))),
+                            interpolation=interp)
+        _, p = predict_full(net, im, device, tile=tile, overlap=overlap, thr=thr,
+                            tta=tta, hysteresis=False, channels=channels)
+        if p.shape != (H, W):
+            p = cv2.resize(p, (W, H), interpolation=cv2.INTER_LINEAR)
+        probs.append(p)
+    prob = np.maximum.reduce(probs) if fuse == "max" else np.mean(probs, axis=0)
+    mask = hysteresis_mask(prob, image_rgb, thr_hi=thr, thr_lo=thr_lo)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
+                            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    return mask, prob.astype(np.float32)
+
+
 def load_net(ckpt, device):
     ck = torch.load(ckpt, map_location=device, weights_only=False)
     cfg = ck["cfg"]
