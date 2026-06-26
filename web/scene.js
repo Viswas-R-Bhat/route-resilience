@@ -3,9 +3,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const SIZE = 10;                 // world size of the satellite plane
 const TIER = { critical: 0xff6b5e, important: 0xf0b75e, normal: 0x5ec8a0 };
-const HEAL = 0xf5c06b, CANOPY = 0x7ed957, OFF = 0x5a6172, FLOOD = 0x3b9eff;
-const healColor = e => e.hk === "canopy" ? CANOPY : HEAL;
-// confidence -> glow: inferred bridges glow dimmer (geom=med, canopy=low, saturated-canopy=vlow)
+const HEAL = 0xf5c06b, CANOPY = 0x7ed957, PROB = 0xb388ff, OFF = 0x5a6172, FLOOD = 0x3b9eff;
+const healColor = e => e.hk === "canopy" ? CANOPY : e.hk === "prob" ? PROB : HEAL;
+// confidence -> glow: inferred bridges glow dimmer (faint-road=high, geom=med, canopy=low, saturated-canopy=vlow)
 const CONF_GLOW = { high: .55, med: .5, low: .32, vlow: .18 };
 const healGlow = e => CONF_GLOW[e.conf] ?? .5;
 

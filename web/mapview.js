@@ -3,9 +3,9 @@
  * Renders the real criticality graph at true lat/lon over a dark basemap + the
  * satellite imagery the model actually ran on. Requires global L (Leaflet). */
 const TIER = { critical: "#ff6b5e", important: "#f0b75e", normal: "#5ec8a0" };
-const HEAL = "#f5c06b", CANOPY = "#7ed957", OFF = "#5a6172", FLOOD = "#3b9eff";
-const healColor = e => e.healed ? (e.hk === "canopy" ? CANOPY : HEAL) : null;
-// confidence -> opacity: inferred bridges look fainter (visible=high, geom=med, canopy=low, saturated-canopy=vlow)
+const HEAL = "#f5c06b", CANOPY = "#7ed957", PROB = "#b388ff", OFF = "#5a6172", FLOOD = "#3b9eff";
+const healColor = e => e.healed ? (e.hk === "canopy" ? CANOPY : e.hk === "prob" ? PROB : HEAL) : null;
+// confidence -> opacity: inferred bridges look fainter (faint-road=high, geom=med, canopy=low, saturated-canopy=vlow)
 const CONF_OP = { high: .9, med: .85, low: .66, vlow: .48 };
 const healOpacity = e => e.healed ? (CONF_OP[e.conf] ?? .85) : .9;
 

@@ -97,15 +97,17 @@ def canopy_evidence(rgb, exg_floor=12, dense_pct=78):
     return dict(dense=exg > thr, green_frac=green_frac)
 
 
-def _canopy_overlap(p1, p2, veg, samples=32):
-    """Fraction of the straight p1->p2 bridge that passes over canopy pixels.
+def _span_mean(p1, p2, field, samples=32):
+    """Mean of a 2D field sampled along the straight p1->p2 bridge.
 
-    pos is (x, y) = (col, row); the vegetation mask is indexed [row, col] = [y, x].
+    For a boolean canopy mask this is the fraction of the span over canopy; for the soft
+    road-probability map it is the mean road belief under the span.
+    pos is (x, y) = (col, row); the field is indexed [row, col] = [y, x].
     """
-    Hh, Ww = veg.shape
+    Hh, Ww = field.shape
     xs = np.clip(np.linspace(p1[0], p2[0], samples).astype(int), 0, Ww - 1)
     ys = np.clip(np.linspace(p1[1], p2[1], samples).astype(int), 0, Hh - 1)
-    return float(veg[ys, xs].mean())
+    return float(field[ys, xs].mean())
 
 
 def _line_offset(p0, ang_deg, p):
@@ -137,35 +139,45 @@ def _aligned(p1, p2, a1, a2, ang_tol, corridor_px):
 def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
                canopy_max_gap_px=None, canopy_angular_tolerance_deg=None,
                exg_floor=12, dense_pct=78, canopy_frac=0.5, corridor_px=16,
-               saturation_frac=0.6):
+               saturation_frac=0.6, prob=None, prob_road_floor=0.20, prob_strong=0.35):
     """Return (healed_graph, n_healed). Synthetic edges carry healed=True,
-    heal_kind in {"canopy", "geom"}, a confidence `conf` in {"med", "low", "vlow"}, and
-    canopy_frac (span fraction over canopy). Scene-level stats land on H.graph
-    (canopy_frac_scene, canopy_saturated).
+    heal_kind in {"prob", "canopy", "geom"}, a confidence `conf` in {"high","med","low","vlow"},
+    canopy_frac (span fraction over canopy) and road_prob (mean model belief under the span).
+    Scene-level stats land on H.graph (canopy_frac_scene, canopy_saturated).
 
-    If `rgb` (the source tile, same pixel space as the graph) is given, gaps whose bridge lies
-    mostly over canopy use the relaxed `canopy_*` gates; everything else uses the strict base
-    gates. In a CANOPY-SATURATED scene (raw vegetated fraction >= saturation_frac, e.g. dense
-    rain-forest) the canopy signal is non-discriminative, so the healer throttles itself —
-    smaller relaxation, stricter overlap demand — and flags those bridges very-low confidence,
-    rather than fabricating phantom roads. With rgb=None it's purely geometric (back-compatible).
+    THREE evidence channels decide whether a gap is occlusion (relax the gates) or a genuine
+    dead-end (stay strict). Geometric alignment is ALWAYS required — these channels only widen
+    the gap/angle budget, they never bridge an unaligned pair:
+      - prob   (strongest) : if `prob` (the segmenter's soft road map, same pixel space as the
+                             graph) is given, a bridge whose span averages >= prob_road_floor is
+                             road the model still believes in BELOW the mask threshold (thin
+                             canopy / shadow). This is the model's own evidence, so it earns the
+                             full relaxed gates even in a canopy-saturated scene, and conf "high"
+                             when the belief is strong (>= prob_strong) else "med".
+      - canopy             : a bridge mostly over the dense ExG canopy mask is likely occlusion;
+                             relaxed gates, conf "low" (or "vlow" + throttled gates in a
+                             CANOPY-SATURATED scene where the canopy signal is non-discriminative,
+                             rather than fabricating phantom roads).
+      - geom               : neither signal -> strict base gates, conf "med".
+    With prob=None and rgb=None it is purely geometric (back-compatible).
     """
     H = G.copy()
     # canopy gates default to a relaxation of the base gates (longer gap, wider angle)
     cg = canopy_max_gap_px if canopy_max_gap_px is not None else max_gap_px * 1.6
     ca = canopy_angular_tolerance_deg if canopy_angular_tolerance_deg is not None \
         else min(angular_tolerance_deg + 20, 70)
+    cg_relaxed, ca_relaxed = cg, ca                      # full relaxation, kept for the reliable prob channel
     ev = canopy_evidence(rgb, exg_floor, dense_pct) if rgb is not None else None
     veg = ev["dense"] if ev else None
     green_frac = ev["green_frac"] if ev else 0.0
     saturated = green_frac >= saturation_frac
     H.graph["canopy_frac_scene"] = round(green_frac, 3)
     H.graph["canopy_saturated"] = bool(saturated)
-    if saturated:                                        # unreliable signal -> be conservative
+    if saturated:                                        # unreliable canopy signal -> throttle the canopy path only
         cg = min(cg, max_gap_px * 1.25)
         ca = min(ca, angular_tolerance_deg + 10)
     req_frac = max(canopy_frac, 0.65) if saturated else canopy_frac
-    search_r = max(max_gap_px, cg) if veg is not None else max_gap_px
+    search_r = max(max_gap_px, cg_relaxed) if (veg is not None or prob is not None) else max_gap_px
 
     uf = UnionFind(list(H.nodes()))
     for u, v in H.edges():
@@ -178,7 +190,7 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
             continue
         p1 = np.array(H.nodes[n1]["pos"]); p2 = np.array(H.nodes[n2]["pos"])
         dist = float(np.linalg.norm(p1 - p2))
-        if dist <= search_r:                             # widen search when canopy evidence is in play
+        if dist <= search_r:                             # widen search when occlusion evidence is in play
             candidates.append((dist, n1, n2))
     candidates.sort()                                    # shortest gaps first (MST-like)
 
@@ -187,19 +199,31 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
         if uf.connected(n1, n2):
             continue
         p1 = np.array(H.nodes[n1]["pos"]); p2 = np.array(H.nodes[n2]["pos"])
-        over = _canopy_overlap(p1, p2, veg) if veg is not None else 0.0
+        over = _span_mean(p1, p2, veg) if veg is not None else 0.0
+        sprob = _span_mean(p1, p2, prob) if prob is not None else 0.0
+        is_soft_road = sprob >= prob_road_floor          # model still sees road under the gap (sub-threshold)
         is_canopy = over >= req_frac                     # bridge mostly over dense canopy -> occlusion
-        eff_gap = cg if is_canopy else max_gap_px
-        eff_ang = ca if is_canopy else angular_tolerance_deg
+        # gates by strongest evidence; prob is reliable so it keeps the un-throttled relaxation
+        if is_soft_road:
+            eff_gap, eff_ang = cg_relaxed, ca_relaxed
+        elif is_canopy:
+            eff_gap, eff_ang = cg, ca
+        else:
+            eff_gap, eff_ang = max_gap_px, angular_tolerance_deg
         if dist > eff_gap:
             continue
         a1 = compute_road_angle(H, n1, depth); a2 = compute_road_angle(H, n2, depth)
         if not _aligned(p1, p2, a1, a2, eff_ang, corridor_px):
             continue
-        kind = "canopy" if is_canopy else "geom"
-        conf = ("vlow" if saturated else "low") if is_canopy else "med"   # visible roads = "high"
-        H.add_edge(n1, n2, weight=dist, length_px=dist, healed=True,
-                   heal_kind=kind, conf=conf, canopy_frac=round(over, 3))
+        # label/confidence by strongest signal: the model's own road belief outranks a canopy guess
+        if is_soft_road:
+            kind, conf = "prob", ("high" if sprob >= prob_strong else "med")
+        elif is_canopy:
+            kind, conf = "canopy", ("vlow" if saturated else "low")
+        else:
+            kind, conf = "geom", "med"
+        H.add_edge(n1, n2, weight=dist, length_px=dist, healed=True, heal_kind=kind, conf=conf,
+                   canopy_frac=round(over, 3), road_prob=round(sprob, 3))
         uf.union(n1, n2)
         healed += 1
     return H, healed
