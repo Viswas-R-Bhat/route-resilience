@@ -218,7 +218,7 @@ add_text(s3, LEFT, CONTENT_TOP - 0.06, WIDTH, 0.62,
 lx, lw = LEFT, 4.55
 add_text(s3, lx, CONTENT_TOP+0.60, lw, 0.3, [{"t":"How we are different"}], size=13.5, color=BLUE, bold=True, font=HFONT)
 usps = [
-    ("Occlusion-robust extraction", "Canopy-aware hysteresis grows faint roads from confident seeds, reaching deeper under tree cover to recover occluded segments.", TEAL),
+    ("Occlusion-robust extraction", "Multi-scale inference + canopy-aware hysteresis grow faint roads from confident seeds — recovering streets missed at native scale and segments deep under tree cover.", TEAL),
     ("Evidence-based topological healing", "Union-Find bridges gaps — endpoint-pairs AND mid-edge T-junctions — only where evidence agrees the road continues: the model's sub-threshold confidence, an Excess-Green canopy mask and trajectory alignment, each tagged high/med/low.", BLUE),
     ("Predictive resilience: failure & flood", "Weighted-betweenness ablation, DEM flood-submersion and demand-weighted criticality quantify systemic collapse.", ORANGE),
     ("Validated against OSM ground truth", "A topological-accuracy benchmark scores the graph vs OpenStreetMap: recall, path-length error and routing match.", PURPLE),
@@ -263,7 +263,7 @@ add_line(s3, rx+panelW+0.06, panelY+panelH/2, pbx-0.06, panelY+panelH/2, color=O
 s4 = sl[3]; del_nonbg(s4)
 content_title(s4, "Key Features")
 feats = [
-    ("Occlusion-robust segmentation", "U-Net/ResNet34 with canopy-aware hysteresis thresholding recovers roads under canopy & shadow.", TEAL),
+    ("Occlusion-robust segmentation", "U-Net/ResNet34 + multi-scale inference & canopy-aware hysteresis recover roads under canopy, shadow, and below the 1x receptive field.", TEAL),
     ("Topological reconstruction", "Skeletonize → graph → Union-Find healing yields a routable weighted vector network.", BLUE),
     ("Evidence-based gap healing", "Endpoint + mid-edge T-junction bridges gated by model soft-confidence, Excess-Green canopy & trajectory — each tagged high/med/low.", TEAL),
     ("Gatekeeper-node detection", "Weighted betweenness (k-sampled at scale) maps critical intersections & weakest links.", ORANGE),
