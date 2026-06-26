@@ -23,6 +23,7 @@ Metric: "Connectivity Ratio" — components merged + largest-connected-component
 import numpy as np
 import networkx as nx
 from itertools import combinations
+from scipy.spatial import cKDTree
 
 
 class UnionFind:
@@ -136,10 +137,132 @@ def _aligned(p1, p2, a1, a2, ang_tol, corridor_px):
     return straight_ok or corridor_ok
 
 
+def _plen(pts):
+    p = np.asarray(pts, dtype=np.float64)
+    if len(p) < 2:
+        return 1.0
+    return float(np.sqrt((np.diff(p, axis=0) ** 2).sum(axis=1)).sum())
+
+
+def _closest_on_polyline(p, P):
+    """Closest point on polyline P (Nx2, x,y) to point p. Returns (foot_xy, seg_index_k, dist)."""
+    best = (None, 0, np.inf)
+    for k in range(len(P) - 1):
+        a = P[k]; ab = P[k + 1] - a; L2 = float(ab @ ab)
+        t = 0.0 if L2 == 0 else float(np.clip((p - a) @ ab / L2, 0.0, 1.0))
+        foot = a + t * ab
+        dd = float(np.linalg.norm(p - foot))
+        if dd < best[2]:
+            best = (foot, k, dd)
+    return best
+
+
+def _bridge_eval(p1, p2, gc):
+    """Pick the gap/angle budget + heal label for a candidate bridge p1->p2, by strongest
+    occlusion evidence. Shared by endpoint-pair and T-junction healing so both gate identically.
+    Returns dict(eff_gap, eff_ang, kind, conf, over, sprob)."""
+    over = _span_mean(p1, p2, gc["veg"]) if gc["veg"] is not None else 0.0
+    sprob = _span_mean(p1, p2, gc["prob"]) if gc["prob"] is not None else 0.0
+    if sprob >= gc["prob_floor"]:                        # model still sees road (sub-threshold) -> reliable
+        eff_gap, eff_ang = gc["gap_prob"], gc["ang_prob"]
+        kind, conf = "prob", ("high" if sprob >= gc["prob_strong"] else "med")
+    elif over >= gc["req_frac"]:                         # bridge mostly over dense canopy -> likely occlusion
+        eff_gap, eff_ang = gc["gap_canopy"], gc["ang_canopy"]
+        kind, conf = "canopy", ("vlow" if gc["saturated"] else "low")
+    else:                                                # visible bare ground -> strict
+        eff_gap, eff_ang = gc["gap_geom"], gc["ang_geom"]
+        kind, conf = "geom", "med"
+    return dict(eff_gap=eff_gap, eff_ang=eff_ang, kind=kind, conf=conf, over=over, sprob=sprob)
+
+
+def _heal_t_junctions(H, uf, gc, depth, search_r, snap_px=6):
+    """Connect each remaining dead-end to the NEAREST POINT on another component's road edge
+    (a T-junction), splitting that edge at the foot of the perpendicular to create a real node.
+
+    Endpoint-PAIR healing can't make these: a side street that dead-ends near the MIDDLE of a
+    through road has no node to pair with. The bridge must continue the dead-end's own road
+    direction (so we never veer a stub sideways into an unrelated/parallel road), and the same
+    evidence gates apply (prob/canopy relax the gap; bare ground stays strict). If the foot lands
+    within snap_px of one of the target edge's endpoints we connect to that node instead of
+    splitting (avoids degenerate slivers). Returns the number of T-junction bridges added.
+    """
+    geoms = []                                           # splittable real edges, oriented u->v
+    pt_xy, pt_owner = [], []
+    for u, v, d in H.edges(data=True):
+        pts = d.get("pts")
+        if pts is None or d.get("healed"):
+            continue
+        P = np.asarray(pts, dtype=np.float64)[:, ::-1]   # (y,x) -> (x,y)
+        if len(P) < 2:
+            continue
+        if np.linalg.norm(P[0] - H.nodes[u]["pos"]) > np.linalg.norm(P[-1] - H.nodes[u]["pos"]):
+            P = P[::-1]; pts = np.asarray(pts)[::-1]      # orient so P[0] ~ node u
+        gi = len(geoms)
+        geoms.append(dict(u=u, v=v, P=P, pts=np.asarray(pts)))
+        for q in P:
+            pt_xy.append(q); pt_owner.append(gi)
+    if not geoms:
+        return 0
+    tree = cKDTree(np.array(pt_xy)); owner = np.array(pt_owner)
+
+    cand = []
+    for e in [n for n in H.nodes() if H.degree[n] == 1]:
+        pe = np.array(H.nodes[e]["pos"], dtype=np.float64)
+        hits = tree.query_ball_point(pe, search_r)
+        best = None
+        for gi in set(owner[h] for h in hits):
+            g = geoms[gi]
+            if e in (g["u"], g["v"]):
+                continue
+            foot, k, dd = _closest_on_polyline(pe, g["P"])
+            if best is None or dd < best[0]:
+                best = (dd, gi, foot, k)
+        if best is not None and best[0] <= search_r:
+            cand.append((best[0], e, best[1], best[2], best[3]))
+    cand.sort()                                          # shortest gaps first
+
+    next_id = max(H.nodes()) + 1
+    n_t = 0
+    for dist, e, gi, foot, k in cand:
+        g = geoms[gi]; u, v = g["u"], g["v"]
+        if not H.has_edge(u, v) or uf.connected(e, u):   # target already split, or same component
+            continue
+        pe = np.array(H.nodes[e]["pos"], dtype=np.float64)
+        b = _bridge_eval(pe, foot, gc)
+        if dist > b["eff_gap"]:
+            continue
+        a_e = compute_road_angle(H, e, depth)            # the dead-end's own road direction
+        bridge_ang = np.degrees(np.arctan2(foot[1] - pe[1], foot[0] - pe[0])) % 180
+        if a_e is not None and _ang_dev(bridge_ang, a_e) > b["eff_ang"]:
+            continue                                     # bridge must continue the side street
+        if np.linalg.norm(foot - g["P"][0]) <= snap_px:          # foot ~ at node u
+            target = u
+        elif np.linalg.norm(foot - g["P"][-1]) <= snap_px:       # foot ~ at node v
+            target = v
+        else:                                            # split the edge at the foot -> new node
+            target = next_id; next_id += 1
+            foot_yx = np.array([[foot[1], foot[0]]])
+            ptsA = np.vstack([g["pts"][:k + 1], foot_yx])
+            ptsB = np.vstack([foot_yx, g["pts"][k + 1:]])
+            H.remove_edge(u, v)
+            H.add_node(target, pos=(float(foot[0]), float(foot[1])), yx=(float(foot[1]), float(foot[0])))
+            H.add_edge(u, target, weight=_plen(ptsA), length_px=_plen(ptsA), pts=ptsA)
+            H.add_edge(target, v, weight=_plen(ptsB), length_px=_plen(ptsB), pts=ptsB)
+            uf.parent[target] = target; uf.rank[target] = 0
+            uf.union(target, u)
+        H.add_edge(e, target, weight=float(dist), length_px=float(dist), healed=True,
+                   heal_kind=b["kind"], conf=b["conf"], heal_via="tjunction",
+                   canopy_frac=round(b["over"], 3), road_prob=round(b["sprob"], 3))
+        uf.union(e, target)
+        n_t += 1
+    return n_t
+
+
 def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
                canopy_max_gap_px=None, canopy_angular_tolerance_deg=None,
                exg_floor=12, dense_pct=78, canopy_frac=0.5, corridor_px=16,
-               saturation_frac=0.6, prob=None, prob_road_floor=0.20, prob_strong=0.35):
+               saturation_frac=0.6, prob=None, prob_road_floor=0.20, prob_strong=0.35,
+               tjunction=True, tjunction_snap_px=6):
     """Return (healed_graph, n_healed). Synthetic edges carry healed=True,
     heal_kind in {"prob", "canopy", "geom"}, a confidence `conf` in {"high","med","low","vlow"},
     canopy_frac (span fraction over canopy) and road_prob (mean model belief under the span).
@@ -160,6 +283,13 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
                              rather than fabricating phantom roads).
       - geom               : neither signal -> strict base gates, conf "med".
     With prob=None and rgb=None it is purely geometric (back-compatible).
+
+    Two healing topologies run in sequence (both gated by the channels above):
+      1. endpoint-pair  : bridge two dead-ends that continue each other's trajectory, AND
+      2. T-junction     : when tjunction=True, connect any remaining dead-end to the nearest
+                          POINT on another component's edge, splitting that edge into a real
+                          node — recovering side-street-meets-through-road gaps that pair
+                          healing structurally cannot (the meeting point is mid-edge).
     """
     H = G.copy()
     # canopy gates default to a relaxation of the base gates (longer gap, wider angle)
@@ -178,6 +308,9 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
         ca = min(ca, angular_tolerance_deg + 10)
     req_frac = max(canopy_frac, 0.65) if saturated else canopy_frac
     search_r = max(max_gap_px, cg_relaxed) if (veg is not None or prob is not None) else max_gap_px
+    gc = dict(veg=veg, prob=prob, req_frac=req_frac, prob_floor=prob_road_floor, prob_strong=prob_strong,
+              gap_geom=max_gap_px, ang_geom=angular_tolerance_deg, gap_canopy=cg, ang_canopy=ca,
+              gap_prob=cg_relaxed, ang_prob=ca_relaxed, saturated=saturated)
 
     uf = UnionFind(list(H.nodes()))
     for u, v in H.edges():
@@ -199,33 +332,19 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
         if uf.connected(n1, n2):
             continue
         p1 = np.array(H.nodes[n1]["pos"]); p2 = np.array(H.nodes[n2]["pos"])
-        over = _span_mean(p1, p2, veg) if veg is not None else 0.0
-        sprob = _span_mean(p1, p2, prob) if prob is not None else 0.0
-        is_soft_road = sprob >= prob_road_floor          # model still sees road under the gap (sub-threshold)
-        is_canopy = over >= req_frac                     # bridge mostly over dense canopy -> occlusion
-        # gates by strongest evidence; prob is reliable so it keeps the un-throttled relaxation
-        if is_soft_road:
-            eff_gap, eff_ang = cg_relaxed, ca_relaxed
-        elif is_canopy:
-            eff_gap, eff_ang = cg, ca
-        else:
-            eff_gap, eff_ang = max_gap_px, angular_tolerance_deg
-        if dist > eff_gap:
+        b = _bridge_eval(p1, p2, gc)
+        if dist > b["eff_gap"]:
             continue
         a1 = compute_road_angle(H, n1, depth); a2 = compute_road_angle(H, n2, depth)
-        if not _aligned(p1, p2, a1, a2, eff_ang, corridor_px):
+        if not _aligned(p1, p2, a1, a2, b["eff_ang"], corridor_px):
             continue
-        # label/confidence by strongest signal: the model's own road belief outranks a canopy guess
-        if is_soft_road:
-            kind, conf = "prob", ("high" if sprob >= prob_strong else "med")
-        elif is_canopy:
-            kind, conf = "canopy", ("vlow" if saturated else "low")
-        else:
-            kind, conf = "geom", "med"
-        H.add_edge(n1, n2, weight=dist, length_px=dist, healed=True, heal_kind=kind, conf=conf,
-                   canopy_frac=round(over, 3), road_prob=round(sprob, 3))
+        H.add_edge(n1, n2, weight=dist, length_px=dist, healed=True, heal_kind=b["kind"], conf=b["conf"],
+                   canopy_frac=round(b["over"], 3), road_prob=round(b["sprob"], 3))
         uf.union(n1, n2)
         healed += 1
+
+    if tjunction:                                        # connect remaining dead-ends into mid-edge T-junctions
+        healed += _heal_t_junctions(H, uf, gc, depth, search_r, snap_px=tjunction_snap_px)
     return H, healed
 
 

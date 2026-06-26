@@ -4,41 +4,41 @@
       "stem": "blr_hsr",
       "label": "HSR Layout \u00b7 Bengaluru",
       "geo": true,
-      "nodes": 215,
-      "edges": 226,
-      "gatekeeper_bc": 0.3757
+      "nodes": 219,
+      "edges": 236,
+      "gatekeeper_bc": 0.434
     },
     {
       "stem": "blr_jayanagar",
       "label": "Planned grid sector",
       "geo": true,
-      "nodes": 1150,
-      "edges": 1126,
-      "gatekeeper_bc": 0.2248
+      "nodes": 1181,
+      "edges": 1196,
+      "gatekeeper_bc": 0.4093
     },
     {
       "stem": "blr_rajajinagar",
       "label": "Planned grid sector II",
       "geo": true,
-      "nodes": 1630,
-      "edges": 1677,
-      "gatekeeper_bc": 0.3316
+      "nodes": 1653,
+      "edges": 1730,
+      "gatekeeper_bc": 0.3851
     },
     {
       "stem": "blr_res",
       "label": "Residential sector",
       "geo": true,
-      "nodes": 1200,
-      "edges": 1138,
-      "gatekeeper_bc": 0.1377
+      "nodes": 1241,
+      "edges": 1233,
+      "gatekeeper_bc": 0.376
     },
     {
       "stem": "blr_sector",
       "label": "HSR sector \u00b7 2.4 km",
       "geo": true,
-      "nodes": 1012,
-      "edges": 1019,
-      "gatekeeper_bc": 0.1895
+      "nodes": 1036,
+      "edges": 1079,
+      "gatekeeper_bc": 0.2285
     }
   ],
   "default": "blr_hsr"

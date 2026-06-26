@@ -69,16 +69,18 @@ def main():
     n_prob = sum(d.get("heal_kind") == "prob" for _, _, d in H.edges(data=True))
     n_canopy = sum(d.get("heal_kind") == "canopy" for _, _, d in H.edges(data=True))
     n_geom = sum(d.get("heal_kind") == "geom" for _, _, d in H.edges(data=True))
+    n_tjct = sum(d.get("heal_via") == "tjunction" for _, _, d in H.edges(data=True))   # mid-edge T-junctions
     scene_green = H.graph.get("canopy_frac_scene", 0.0)
     saturated = H.graph.get("canopy_saturated", False)
-    print(f"[3/4] healed: +{healed} bridges ({n_prob} faint-road / {n_canopy} under canopy / {n_geom} open) | "
+    print(f"[3/4] healed: +{healed} bridges ({n_prob} faint-road / {n_canopy} under canopy / {n_geom} open; "
+          f"{n_tjct} into T-junctions) | "
           f"scene canopy {scene_green*100:.0f}%{' [SATURATED-conservative]' if saturated else ''} | "
           f"components {conn['components_before']}->{conn['components_after']} | "
           f"LCC {conn['lcc_frac_before']*100:.0f}%->{conn['lcc_frac_after']*100:.0f}%")
 
     # ---- Phase 4: criticality + resilience ----
     report = dict(stem=stem, raw_graph=raw_stats, connectivity=conn, healed_bridges=healed,
-                  healed_prob=n_prob, healed_canopy=n_canopy, healed_geom=n_geom,
+                  healed_prob=n_prob, healed_canopy=n_canopy, healed_geom=n_geom, healed_tjunction=n_tjct,
                   scene_canopy_frac=scene_green, canopy_saturated=bool(saturated))
     if H.number_of_nodes() >= 4:
         ranked = compute_centrality(H)

@@ -10,67 +10,68 @@
   },
   "connectivity": {
     "components_before": 133,
-    "components_after": 64,
-    "components_merged": 69,
+    "components_after": 28,
+    "components_merged": 105,
     "lcc_frac_before": 0.6334,
-    "lcc_frac_after": 0.7777,
-    "healed_edges": 69
+    "lcc_frac_after": 0.8629,
+    "healed_edges": 129
   },
-  "healed_bridges": 69,
-  "healed_prob": 9,
-  "healed_canopy": 5,
-  "healed_geom": 55,
+  "healed_bridges": 105,
+  "healed_prob": 21,
+  "healed_canopy": 8,
+  "healed_geom": 76,
+  "healed_tjunction": 36,
   "scene_canopy_frac": 0.619,
   "canopy_saturated": true,
   "gatekeepers": [
     {
       "node": 500,
-      "betweenness": 0.1895,
+      "betweenness": 0.2285,
       "tier": "critical"
     },
     {
       "node": 690,
-      "betweenness": 0.1683,
+      "betweenness": 0.1961,
       "tier": "critical"
     },
     {
       "node": 680,
-      "betweenness": 0.1613,
+      "betweenness": 0.1886,
       "tier": "critical"
     },
     {
       "node": 350,
-      "betweenness": 0.1562,
-      "tier": "critical"
-    },
-    {
-      "node": 501,
-      "betweenness": 0.147,
+      "betweenness": 0.1873,
       "tier": "critical"
     },
     {
       "node": 672,
-      "betweenness": 0.1469,
+      "betweenness": 0.1731,
       "tier": "critical"
     },
     {
       "node": 227,
-      "betweenness": 0.1442,
+      "betweenness": 0.1727,
       "tier": "critical"
     },
     {
       "node": 475,
-      "betweenness": 0.1388,
+      "betweenness": 0.1717,
+      "tier": "critical"
+    },
+    {
+      "node": 501,
+      "betweenness": 0.1704,
       "tier": "critical"
     },
     {
       "node": 358,
-      "betweenness": 0.1379,
+      "betweenness": 0.169,
       "tier": "critical"
     },
     {
       "node": 395,
-      "betweenness": 0.1367,
+      "betweenness": 0.1688,
       "tier": "critical"
     }
   ],
@@ -78,71 +79,71 @@
     {
       "node": 350,
       "service_crit": 1.0,
-      "betweenness": 0.1562,
-      "demand": 880.4,
-      "tier": "critical"
-    },
-    {
-      "node": 713,
-      "service_crit": 0.9527,
-      "betweenness": 0.1265,
-      "demand": 1035.0,
+      "betweenness": 0.1873,
+      "demand": 914.9,
       "tier": "critical"
     },
     {
       "node": 358,
-      "service_crit": 0.9395,
-      "betweenness": 0.1379,
-      "demand": 937.0,
+      "service_crit": 0.9584,
+      "betweenness": 0.169,
+      "demand": 971.5,
+      "tier": "critical"
+    },
+    {
+      "node": 713,
+      "service_crit": 0.9119,
+      "betweenness": 0.1509,
+      "demand": 1035.0,
       "tier": "critical"
     },
     {
       "node": 690,
-      "service_crit": 0.8702,
-      "betweenness": 0.1683,
+      "service_crit": 0.8137,
+      "betweenness": 0.1961,
       "demand": 710.8,
       "tier": "critical"
     },
     {
-      "node": 655,
-      "service_crit": 0.8517,
-      "betweenness": 0.0903,
-      "demand": 1297.1,
-      "tier": "critical"
-    },
-    {
-      "node": 623,
-      "service_crit": 0.8505,
-      "betweenness": 0.0997,
-      "demand": 1173.0,
-      "tier": "critical"
-    },
-    {
       "node": 680,
-      "service_crit": 0.8473,
-      "betweenness": 0.1613,
+      "service_crit": 0.7949,
+      "betweenness": 0.1886,
       "demand": 722.1,
       "tier": "critical"
     },
     {
+      "node": 475,
+      "service_crit": 0.7883,
+      "betweenness": 0.1717,
+      "demand": 786.4,
+      "tier": "critical"
+    },
+    {
+      "node": 655,
+      "service_crit": 0.7797,
+      "betweenness": 0.103,
+      "demand": 1297.1,
+      "tier": "critical"
+    },
+    {
       "node": 626,
-      "service_crit": 0.8392,
-      "betweenness": 0.0961,
+      "service_crit": 0.77,
+      "betweenness": 0.1099,
       "demand": 1200.4,
       "tier": "critical"
     },
     {
-      "node": 652,
-      "service_crit": 0.7999,
-      "betweenness": 0.0945,
-      "demand": 1163.5,
+      "node": 500,
+      "service_crit": 0.7671,
+      "betweenness": 0.2285,
+      "demand": 575.1,
       "tier": "critical"
     },
     {
-      "node": 475,
-      "service_crit": 0.7941,
-      "betweenness": 0.1388,
-      "demand": 786.4,
+      "node": 227,
+      "service_crit": 0.7595,
+      "betweenness": 0.1727,
+      "demand": 753.5,
       "tier": "critical"
     }
   ],
@@ -152,72 +153,72 @@
       "removed": null,
       "betweenness": null,
       "resilience_index": 1.0,
-      "global_efficiency": 0.000306,
+      "global_efficiency": 0.000364,
       "lcc_fraction": 1.0
     },
     {
       "step": 1,
       "removed": 500,
-      "betweenness": 0.1895,
-      "resilience_index": 0.9582,
-      "global_efficiency": 0.000294,
-      "lcc_fraction": 0.9987
+      "betweenness": 0.2285,
+      "resilience_index": 0.9589,
+      "global_efficiency": 0.000349,
+      "lcc_fraction": 0.9989
     },
     {
       "step": 2,
       "removed": 690,
-      "betweenness": 0.1695,
-      "resilience_index": 0.9021,
-      "global_efficiency": 0.000276,
-      "lcc_fraction": 0.9975
+      "betweenness": 0.2042,
+      "resilience_index": 0.9068,
+      "global_efficiency": 0.00033,
+      "lcc_fraction": 0.9978
     },
     {
       "step": 3,
       "removed": 791,
-      "betweenness": 0.234,
-      "resilience_index": 0.7684,
-      "global_efficiency": 0.000235,
-      "lcc_fraction": 0.7471
+      "betweenness": 0.282,
+      "resilience_index": 0.7655,
+      "global_efficiency": 0.000279,
+      "lcc_fraction": 0.7494
     },
     {
       "step": 4,
       "removed": 350,
-      "betweenness": 0.0852,
-      "resilience_index": 0.7515,
-      "global_efficiency": 0.00023,
-      "lcc_fraction": 0.7459
+      "betweenness": 0.1027,
+      "resilience_index": 0.7494,
+      "global_efficiency": 0.000273,
+      "lcc_fraction": 0.7483
     },
     {
       "step": 5,
-      "removed": 343,
-      "betweenness": 0.0817,
-      "resilience_index": 0.7228,
-      "global_efficiency": 0.000221,
-      "lcc_fraction": 0.7306
+      "removed": 375,
+      "betweenness": 0.1033,
+      "resilience_index": 0.7133,
+      "global_efficiency": 0.00026,
+      "lcc_fraction": 0.7461
     },
     {
       "step": 6,
-      "removed": 273,
-      "betweenness": 0.0928,
-      "resilience_index": 0.7018,
-      "global_efficiency": 0.000215,
-      "lcc_fraction": 0.7294
+      "removed": 715,
+      "betweenness": 0.1784,
+      "resilience_index": 0.6047,
+      "global_efficiency": 0.00022,
+      "lcc_fraction": 0.5347
     },
     {
       "step": 7,
-      "removed": 334,
-      "betweenness": 0.0997,
-      "resilience_index": 0.653,
-      "global_efficiency": 0.0002,
-      "lcc_fraction": 0.7217
+      "removed": 202,
+      "betweenness": 0.0596,
+      "resilience_index": 0.5971,
+      "global_efficiency": 0.000217,
+      "lcc_fraction": 0.5336
     },
     {
       "step": 8,
-      "removed": 323,
-      "betweenness": 0.1518,
-      "resilience_index": 0.5633,
-      "global_efficiency": 0.000173,
-      "lcc_fraction": 0.4219
+      "removed": 264,
+      "betweenness": 0.0747,
+      "resilience_index": 0.5501,
+      "global_efficiency": 0.0002,
+      "lcc_fraction": 0.5011
     }
   ],
   "flood": [
@@ -232,78 +233,78 @@
       "step": 1,
       "water_level": 881.7,
       "submerged_frac": 0.083,
-      "resilience_index": 0.7713,
-      "lcc_fraction": 0.864
+      "resilience_index": 0.773,
+      "lcc_fraction": 0.8669
     },
     {
       "step": 2,
       "water_level": 884.2,
-      "submerged_frac": 0.1433,
-      "resilience_index": 0.6852,
-      "lcc_fraction": 0.7942
+      "submerged_frac": 0.1448,
+      "resilience_index": 0.6788,
+      "lcc_fraction": 0.7908
     },
     {
       "step": 3,
       "water_level": 886.7,
-      "submerged_frac": 0.1996,
-      "resilience_index": 0.6137,
-      "lcc_fraction": 0.751
+      "submerged_frac": 0.2017,
+      "resilience_index": 0.6046,
+      "lcc_fraction": 0.7461
     },
     {
       "step": 4,
       "water_level": 889.1,
-      "submerged_frac": 0.2549,
-      "resilience_index": 0.5153,
-      "lcc_fraction": 0.7065
+      "submerged_frac": 0.2577,
+      "resilience_index": 0.4979,
+      "lcc_fraction": 0.6902
     },
     {
       "step": 5,
       "water_level": 891.6,
-      "submerged_frac": 0.3281,
-      "resilience_index": 0.4061,
-      "lcc_fraction": 0.5934
+      "submerged_frac": 0.332,
+      "resilience_index": 0.3671,
+      "lcc_fraction": 0.5425
     },
     {
       "step": 6,
       "water_level": 894.1,
-      "submerged_frac": 0.4328,
-      "resilience_index": 0.2594,
-      "lcc_fraction": 0.4003
+      "submerged_frac": 0.4363,
+      "resilience_index": 0.248,
+      "lcc_fraction": 0.3893
     },
     {
       "step": 7,
       "water_level": 896.6,
-      "submerged_frac": 0.5543,
-      "resilience_index": 0.1671,
-      "lcc_fraction": 0.2821
+      "submerged_frac": 0.556,
+      "resilience_index": 0.163,
+      "lcc_fraction": 0.2796
     },
     {
       "step": 8,
       "water_level": 899.1,
-      "submerged_frac": 0.6917,
-      "resilience_index": 0.0906,
-      "lcc_fraction": 0.1893
+      "submerged_frac": 0.6911,
+      "resilience_index": 0.0926,
+      "lcc_fraction": 0.1924
     },
     {
       "step": 9,
       "water_level": 901.6,
-      "submerged_frac": 0.7678,
-      "resilience_index": 0.0567,
-      "lcc_fraction": 0.122
+      "submerged_frac": 0.7674,
+      "resilience_index": 0.0581,
+      "lcc_fraction": 0.1275
     },
     {
       "step": 10,
       "water_level": 904.1,
-      "submerged_frac": 0.834,
-      "resilience_index": 0.0357,
-      "lcc_fraction": 0.0546
+      "submerged_frac": 0.8349,
+      "resilience_index": 0.036,
+      "lcc_fraction": 0.0649
     },
     {
       "step": 11,
       "water_level": 906.6,
-      "submerged_frac": 0.8794,
-      "resilience_index": 0.0252,
-      "lcc_fraction": 0.0457
+      "submerged_frac": 0.8793,
+      "resilience_index": 0.027,
+      "lcc_fraction": 0.057
     }
   ],
   "elev_min": 873.5,
@@ -323,11 +324,11 @@
     },
     "path_length": {
       "pairs_well_snapped": 150,
-      "routable_pairs": 94,
-      "routing_success": 0.6267,
-      "coverage_gap_rate": 0.7248,
-      "avg_path_length_error_pct": 31.13,
-      "median_path_length_error_pct": 15.27,
+      "routable_pairs": 109,
+      "routing_success": 0.7267,
+      "coverage_gap_rate": 0.7115,
+      "avg_path_length_error_pct": 33.98,
+      "median_path_length_error_pct": 16.86,
       "osm_road_km": 136.99
     }
   },
