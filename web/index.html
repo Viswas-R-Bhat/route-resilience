@@ -6,8 +6,8 @@
 <title>Route Resilience — Urban Mobility Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=15" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=16" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="lib/echarts.min.js"></script>
@@ -43,52 +43,78 @@
     </div>
   </header>
 
-  <!-- KPI row -->
-  <section class="kpis" id="kpis" aria-label="Key metrics"></section>
+  <!-- ================= the stage ================= -->
+  <main class="stage-area">
+   <div class="stage">
+    <!-- hero: 3D network or geolocated map fills the stage -->
+    <canvas id="scene-canvas" aria-label="3D road network visualization"></canvas>
+    <div id="map" aria-label="Geolocated road network map"></div>
 
-  <!-- main grid -->
-  <main class="grid">
-    <section class="card scene-card">
-      <div class="card-head">
-        <h2>Live Road Network · Criticality</h2>
-        <div class="scene-tools">
-          <button id="toggle-rotate" class="ghost-btn" aria-pressed="true">Auto-orbit: On</button>
-          <button id="toggle-heat" class="ghost-btn" aria-pressed="true">Criticality heat: On</button>
-          <button id="reset-view" class="ghost-btn">Reset view</button>
-        </div>
-      </div>
-      <div class="scene-wrap">
-        <canvas id="scene-canvas" aria-label="3D road network visualization"></canvas>
-        <div id="map" aria-label="Geolocated road network map"></div>
-        <div class="map-search">
-          <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input id="loc-input" type="text" placeholder="Analyze any location — place name or lat, lon" autocomplete="off" />
-          <select id="loc-size" aria-label="Area size" title="Area size">
-            <option value="8">1.2 km</option>
-            <option value="12">1.8 km</option>
-            <option value="16">2.4 km</option>
-          </select>
-          <button id="loc-go" class="ghost-btn">Analyze</button>
-        </div>
-        <div class="scene-legend">
-          <span><i class="sw crit"></i>Gatekeeper</span>
-          <span><i class="sw imp"></i>Important</span>
-          <span><i class="sw norm"></i>Normal</span>
-          <span><i class="sw heal"></i>Bridged gap</span>
-          <span><i class="sw prob"></i>Faint-road recovery</span>
-          <span><i class="sw canopy"></i>Under canopy</span>
-          <span><i class="sw flood"></i>Flooded</span>
-          <span><i class="sw off"></i>Disabled</span>
-          <span><i class="sw route"></i>Active route</span>
-          <span><i class="sw osm"></i>OSM roads</span>
-        </div>
-      </div>
-    </section>
+    <!-- ghosted display word behind the network (real region name) -->
+    <div class="ghost-word" id="ghost-word" aria-hidden="true"></div>
+    <!-- spotlight stage floor + measurement ring (3D view only) -->
+    <div class="stage-floor" aria-hidden="true"></div>
+    <div class="stage-ring" aria-hidden="true"></div>
 
-    <aside class="side">
-      <section class="card stress-card">
-        <div class="card-head"><h2>Stress Test</h2></div>
-        <p class="muted sm">Disable Gatekeeper intersections (flood / accident / closure) and watch the network degrade.</p>
+    <!-- search: analyze any location -->
+    <div class="map-search">
+      <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="loc-input" type="text" placeholder="Analyze any location — place name or lat, lon" autocomplete="off" />
+      <select id="loc-size" aria-label="Area size" title="Area size">
+        <option value="8">1.2 km</option>
+        <option value="12">1.8 km</option>
+        <option value="16">2.4 km</option>
+      </select>
+      <button id="loc-go" class="cta-sm">Analyze</button>
+    </div>
+
+    <!-- ============ HUD: real pipeline readouts ============ -->
+    <div class="hud hud-bottom">
+      <div class="scene-legend">
+        <span><i class="sw crit"></i>Gatekeeper</span>
+        <span><i class="sw imp"></i>Important</span>
+        <span><i class="sw norm"></i>Normal</span>
+        <span><i class="sw heal"></i>Bridged gap</span>
+        <span><i class="sw prob"></i>Faint-road recovery</span>
+        <span><i class="sw canopy"></i>Under canopy</span>
+        <span><i class="sw flood"></i>Flooded</span>
+        <span><i class="sw off"></i>Disabled</span>
+        <span><i class="sw route"></i>Active route</span>
+        <span><i class="sw osm"></i>OSM roads</span>
+      </div>
+      <div class="hud-readout">
+        <div id="hud-stats"></div>
+        <div class="hud-model">U-NET/RESNET34 · D4 TTA ×8 · THR 0.475</div>
+      </div>
+    </div>
+    <div class="hud hud-hint scene-hint" aria-hidden="true"></div>
+   </div><!-- /.stage -->
+
+    <!-- ============ left panel: identity + receipt ============ -->
+    <aside class="panel panel-left">
+      <div class="eyebrow">Live Road Network · Criticality</div>
+      <h2 class="display" id="region-title">—</h2>
+      <p class="display-sub">Occlusion-robust extraction → healed graph → stress test.
+        Every number is measured on this tile.</p>
+      <div class="receipt" id="kpis" aria-label="Key metrics"></div>
+      <button id="reset-stress" class="cta">Reset stress test</button>
+    </aside>
+
+    <!-- ============ right rail: instrument clusters ============ -->
+    <aside class="panel panel-right">
+      <section class="cluster display-cluster">
+        <div class="cluster-head"><h3>Display</h3>
+          <div class="scene-tools">
+            <button id="toggle-rotate" class="ghost-btn" aria-pressed="true">Auto-orbit: On</button>
+            <button id="toggle-heat" class="ghost-btn" aria-pressed="true">Heat: On</button>
+            <button id="reset-view" class="ghost-btn">Reset view</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="cluster">
+        <div class="cluster-head"><h3>Stress Test</h3></div>
+        <p class="muted sm">Disable gatekeeper intersections (flood / accident / closure) and watch the network degrade.</p>
         <label class="slider-label" for="ablate">Disable top-<span id="ablate-n">0</span> gatekeepers</label>
         <input type="range" id="ablate" min="0" max="8" value="0" step="1" autocomplete="off" />
         <label class="slider-label flood-row" for="flood" id="flood-wrap" hidden>🌊 Flood water level <span id="flood-m" class="flood-val">dry</span></label>
@@ -102,38 +128,31 @@
           <div class="ri-num tt-num" id="tt-num">+0%</div>
           <div class="ri-meta"><span class="muted sm">Sector route impact</span><span id="tt-sub" class="ri-status">baseline</span></div>
         </div>
-        <button id="reset-stress" class="ghost-btn full">Reset stress test</button>
       </section>
 
-      <section class="card">
-        <div class="card-head"><h2>Network Degradation</h2></div>
+      <section class="cluster">
+        <div class="cluster-head"><h3>Network Degradation</h3></div>
         <div id="resilience-chart" class="chart"></div>
       </section>
+
+      <section class="cluster">
+        <div class="cluster-head"><h3>Gatekeeper Nodes</h3>
+          <button id="gk-mode" class="ghost-btn sm-btn" aria-pressed="false" title="Rank by betweenness, or by betweenness × local demand">Betweenness</button></div>
+        <div id="gatekeepers" class="gk-list" role="list"></div>
+      </section>
+
+      <section class="cluster osm-card" id="osm-card" hidden>
+        <div class="cluster-head"><h3>OSM Validation</h3>
+          <button id="osm-toggle" class="ghost-btn sm-btn" aria-pressed="false" title="Overlay OpenStreetMap ground-truth roads">Show roads</button></div>
+        <p class="muted sm">Extracted graph vs OpenStreetMap ground truth (registration-corrected).</p>
+        <div class="osm-metrics" id="osm-metrics"></div>
+      </section>
     </aside>
+
   </main>
-
-  <section class="analysis">
-    <section class="card">
-      <div class="card-head"><h2>Gatekeeper Nodes</h2>
-        <button id="gk-mode" class="ghost-btn sm-btn" aria-pressed="false" title="Rank by betweenness, or by betweenness × local demand">Betweenness</button></div>
-      <div id="gatekeepers" class="gk-list" role="list"></div>
-    </section>
-
-    <section class="card osm-card" id="osm-card" hidden>
-      <div class="card-head"><h2>OSM Validation</h2>
-        <button id="osm-toggle" class="ghost-btn sm-btn" aria-pressed="false" title="Overlay OpenStreetMap ground-truth roads">Show roads</button></div>
-      <p class="muted sm">Extracted graph vs OpenStreetMap ground truth (registration-corrected).</p>
-      <div class="osm-metrics" id="osm-metrics"></div>
-    </section>
-  </section>
-
-  <footer class="foot">
-    <span>Occlusion-robust extraction → topological healing → graph criticality → resilience stress test</span>
-    <span class="muted">Real satellite imagery · DeepGlobe + Esri World Imagery · occlusion-robust extraction</span>
-  </footer>
 
   <div id="loader" class="loader"><div class="ring"></div><span>Initializing mission control…</span></div>
 
-  <script type="module" src="app.js?v=15"></script>
+  <script type="module" src="app.js?v=16"></script>
 </body>
 </html>

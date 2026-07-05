@@ -104,9 +104,9 @@ function computeRoutes() {
 }
 
 /* ---------- UI ---------- */
-function kpi(label, val, sub, accent) {
-  return `<div class="kpi" style="--accent:${accent}"><div class="k-label">${label}</div>
-    <div class="k-val">${val}</div><div class="k-sub">${sub}</div></div>`;
+function row(label, val, sub) {
+  return `<div class="r-row"><div class="r-top"><span class="r-label">${label}</span>
+    <span class="r-val">${val}</span></div><div class="r-sub">${sub}</div></div>`;
 }
 function render() {
   const fset = new Set(floodSubmerged());
@@ -121,13 +121,19 @@ function render() {
   const col = R > 0.7 ? "#5ec8a0" : R > 0.4 ? "#f0b75e" : "#ff6b5e";
   const gk = DATA.gatekeepers[0];
 
+  // receipt rows on the cream card need dark-ink status colors (contrast)
+  const inkCol = R > 0.7 ? "#14724e" : R > 0.4 ? "#875c0b" : "#b3271d";
   $("#kpis").innerHTML = [
-    kpi("Resilience Index", R.toFixed(2), status, col),
-    kpi("Road nodes", NTOTAL, `${DATA.edges.length} edges`, "#c9ccd3"),
-    kpi("Connectivity (LCC)", (lcc * 100).toFixed(0) + "%", `${DATA.healed_bridges} healed bridges`, "#5ec8a0"),
-    kpi("Top gatekeeper", "N-" + gk.id, "betweenness " + gk.bc.toFixed(3), "#ff6b5e"),
-    kpi("Disabled", dis.size, `of ${NTOTAL} nodes`, "#f5c06b"),
+    row("Road nodes", NTOTAL, `${DATA.edges.length} edges`),
+    row("Connectivity · LCC", (lcc * 100).toFixed(0) + "%", `${DATA.healed_bridges} healed bridges`),
+    row("Top gatekeeper", "N-" + gk.id, "betweenness " + gk.bc.toFixed(3)),
+    row("Disabled nodes", dis.size, `of ${NTOTAL} intersections`),
+    `<div class="r-total"><div><span class="r-total-label">Resilience Index</span>
+       <span class="r-total-status" style="color:${inkCol}">${status}</span></div>
+       <div class="r-total-val" style="color:${inkCol}">${R.toFixed(2)}</div></div>`,
   ].join("");
+  const hs = $("#hud-stats");
+  if (hs) hs.textContent = `NODES ${NTOTAL} · EDGES ${DATA.edges.length} · RI ${R.toFixed(2)} · LCC ${(lcc * 100).toFixed(0)}%`;
 
   $("#ri-num").textContent = R.toFixed(2); $("#ri-num").style.color = col; $("#ri-num").style.textShadow = `0 0 34px ${col}40`;
   $("#ri-status").textContent = status; $("#ri-status").style.color = col;
@@ -267,6 +273,13 @@ async function loadTile(stem) {
   const hint = document.querySelector(".scene-hint");
   if (hint) hint.textContent = geo ? "drag to pan · scroll to zoom · click a node to disable it"
                                    : "Drag to orbit · scroll to zoom · click a node to disable it";
+  // stage identity: region name drives the display heading + ghosted backdrop word
+  document.body.classList.toggle("geo-view", geo);
+  const opt = [...$("#region").options].find(o => o.value === stem);
+  const parts = (opt ? opt.textContent : stem).split("·").map(s => s.trim());
+  const name = parts[0] === "Live" && parts[1] ? parts[1] : parts[0];
+  const rt = $("#region-title"); if (rt) rt.textContent = name;
+  const gw = $("#ghost-word"); if (gw) gw.textContent = name;
 
   activeView.setData(DATA);
   osmShown = false;
@@ -298,7 +311,9 @@ async function analyzeLocation() {
   if (m) { lat = +m[1]; lon = +m[2]; }
   else {
     let g = null;
-    try { g = (await geocode(raw + ", Bengaluru, Karnataka, India")) || (await geocode(raw)); } catch (e) {}
+    // try the place as typed first (so "Delhi" resolves to Delhi); only fall back to a
+    // Bengaluru-biased query for bare local names that don't resolve on their own.
+    try { g = (await geocode(raw)) || (await geocode(raw + ", Bengaluru, Karnataka, India")); } catch (e) {}
     if (!g) { setLoader("Place not found — try “lat, lon”", true); setTimeout(() => setLoader("", false), 2400); return; }
     lat = g.lat; lon = g.lon;
   }

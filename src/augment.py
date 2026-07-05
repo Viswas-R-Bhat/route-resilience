@@ -20,6 +20,7 @@ _BLACK = [(0.0 - m) / s for m, s in zip(IMAGENET_MEAN, IMAGENET_STD)]
 # RGB is the base. Extra channels let the model see beyond colour:
 #   hue/sat/val : HSV decomposition (separates colour from brightness — gray asphalt has low sat)
 #   exg         : Excess-Green vegetation index (2G-R-B) — vegetation/canopy cue for occlusion
+#   exr         : Excess-Red index (1.4R-G) — bare-soil / unpaved-track cue (complements exg)
 #   nir         : near-infrared IF supplied (LISS-IV / Sentinel-2 / Cartosat MS). DeepGlobe and
 #                 Esri are RGB-only, so 'nir' is zero-filled unless a real NIR band is passed in.
 RGB = ["r", "g", "b"]
@@ -29,6 +30,13 @@ _RGB_IDX = {"r": 0, "g": 1, "b": 2}
 def _exg_u8(rgb):
     r, g, b = (rgb[..., i].astype(np.int32) for i in range(3))
     return np.clip((2 * g - r - b + 510) * (255.0 / 1020.0), 0, 255).astype(np.uint8)
+
+
+def _exr_u8(rgb):
+    # ponytail: ExR = 1.4R - G (Meyer 2008), raw form to mirror _exg_u8. Span [-255,357]->[0,255].
+    #           1.4 is the standard coefficient; bump it if red-soil tracks need more contrast.
+    r, g = rgb[..., 0].astype(np.float32), rgb[..., 1].astype(np.float32)
+    return np.clip((1.4 * r - g + 255.0) * (255.0 / 612.0), 0, 255).astype(np.uint8)
 
 
 def build_channels(rgb, spec, nir=None):
@@ -49,6 +57,8 @@ def build_channels(rgb, spec, nir=None):
                 out.append(hsv[..., 1 if ch == "sat" else 2])
         elif ch == "exg":
             out.append(_exg_u8(rgb))
+        elif ch == "exr":
+            out.append(_exr_u8(rgb))
         elif ch == "nir":
             out.append(nir if nir is not None else np.zeros(rgb.shape[:2], np.uint8))
         else:

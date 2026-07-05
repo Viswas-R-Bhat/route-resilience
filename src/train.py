@@ -123,8 +123,10 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--arch")                 # unet | unetpp | deeplabv3plus
     ap.add_argument("--encoder")              # e.g. resnet34 | resnet50 | efficientnet-b4
-    ap.add_argument("--loss", default="combined")  # combined | lovasz | cldice
+    ap.add_argument("--loss", default="cldice")  # combined | lovasz | cldice
+    ap.add_argument("--warmup-dice", type=int)   # cldice only: epochs of pure Dice before swapping to clDice
     ap.add_argument("--datasets", default="deepglobe")  # deepglobe | deepglobe+mass
+    ap.add_argument("--val-every", type=int, default=1)  # validate every N epochs (saves ~40% time at N=3)
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config))
@@ -163,12 +165,17 @@ def main():
     net = M.build_model(arch, encoder, cfg["model"]["encoder_weights"],
                         len(channels), cfg["model"]["classes"]).to(device)
     if args.loss == "lovasz":
-        crit = losses.LovaszDiceLoss().to(device)
+        main_crit = losses.LovaszDiceLoss().to(device)
     elif args.loss == "cldice":
-        crit = losses.ClDiceDiceLoss().to(device)
+        main_crit = losses.ClDiceDiceLoss().to(device)
     else:
-        crit = losses.CombinedLoss(cfg["loss"]["dice"], cfg["loss"]["bce"], cfg["loss"]["connectivity"]).to(device)
-    print(f"  model: {arch} / {encoder} | loss: {args.loss} | datasets: {args.datasets}")
+        main_crit = losses.CombinedLoss(cfg["loss"]["dice"], cfg["loss"]["bce"], cfg["loss"]["connectivity"]).to(device)
+    # clDice curriculum: warm up with pure Dice, then swap to clDice (skeletonizing early junk is noisy)
+    warmup = (args.warmup_dice if args.warmup_dice is not None
+              else cfg["loss"].get("warmup_dice_epochs", 0)) if args.loss == "cldice" else 0
+    warmup_crit = losses.DiceLoss().to(device) if warmup else None
+    print(f"  model: {arch} / {encoder} | loss: {args.loss}"
+          f"{f' (Dice warmup {warmup}ep -> clDice)' if warmup else ''} | datasets: {args.datasets}")
     opt = torch.optim.AdamW(net.parameters(), lr=cfg["train"]["lr"], weight_decay=cfg["train"]["weight_decay"])
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     scaler = GradScaler("cuda")
@@ -179,7 +186,11 @@ def main():
     with open(csv_path, "w", newline="") as f:
         csv.writer(f).writerow(["epoch", "train_loss", "val_loss", "val_iou", "val_dice", "val_relaxed_iou", "val_occ_recall", "lr", "sec"])
 
+    val_every = args.val_every
     for ep in range(1, epochs + 1):
+        crit = warmup_crit if (warmup_crit is not None and ep <= warmup) else main_crit
+        if warmup_crit is not None and ep == warmup + 1:
+            print(f"  >> epoch {ep}: swapping Dice warmup -> clDice loss")
         net.train(); t0 = time.time(); tl = ME.RunningMean()
         for x, y in tqdm(tr_dl, desc=f"epoch {ep}/{epochs}", ncols=90):
             x, y = x.to(device), y.to(device)
@@ -190,27 +201,38 @@ def main():
             tl.update(loss.item(), x.size(0))
         sched.step()
 
-        val, vis = validate(net, va_dl, crit, device, cfg["eval"]["relaxed_buffer_px"], cfg["eval"]["occlusion_eval_frac"])
-        dt = time.time() - t0
-        hist["train_loss"].append(tl.avg); hist["val_loss"].append(val["loss"])
-        hist["val_iou"].append(val["iou"]); hist["val_dice"].append(val["dice"])
-        hist["val_relaxed_iou"].append(val["relaxed_iou"]); hist["val_occ_recall"].append(val["occlusion_recall"])
-        print(f"  ep{ep}: train_loss {tl.avg:.4f} | val_loss {val['loss']:.4f} | IoU {val['iou']:.4f} | "
-              f"Dice {val['dice']:.4f} | RelaxedIoU {val['relaxed_iou']:.4f} | OccRecall {val['occlusion_recall']:.4f} | {dt:.0f}s")
-        with open(csv_path, "a", newline="") as f:
-            csv.writer(f).writerow([ep, f"{tl.avg:.5f}", f"{val['loss']:.5f}", f"{val['iou']:.5f}",
-                                    f"{val['dice']:.5f}", f"{val['relaxed_iou']:.5f}", f"{val['occlusion_recall']:.5f}",
-                                    f"{opt.param_groups[0]['lr']:.2e}", f"{dt:.0f}"])
-        viz.save_curves(hist, os.path.join(out_dir, "curves.png"))
-        if vis is not None:
-            viz.save_prediction_grid(vis[0], vis[1], vis[2], os.path.join(out_dir, f"preds_ep{ep:02d}.png"), occluded=vis[3])
-        meta = {"arch": arch, "encoder": encoder, "loss": args.loss, "datasets": args.datasets}
-        torch.save({"model": net.state_dict(), "cfg": cfg, "epoch": ep, **meta}, os.path.join(out_dir, "last.pt"))
-        if val["iou"] > best_iou:
-            best_iou, best_ep = val["iou"], ep
-            torch.save({"model": net.state_dict(), "cfg": cfg, "epoch": ep, "val": val, **meta}, os.path.join(out_dir, "best.pt"))
-        elif ep - best_ep >= patience:
-            print(f"  early stop (no IoU improvement for {patience} epochs)"); break
+        do_val = (ep % val_every == 0) or ep == epochs or ep == 1
+        if do_val:
+            val, vis = validate(net, va_dl, crit, device, cfg["eval"]["relaxed_buffer_px"], cfg["eval"]["occlusion_eval_frac"])
+            dt = time.time() - t0
+            hist["train_loss"].append(tl.avg); hist["val_loss"].append(val["loss"])
+            hist["val_iou"].append(val["iou"]); hist["val_dice"].append(val["dice"])
+            hist["val_relaxed_iou"].append(val["relaxed_iou"]); hist["val_occ_recall"].append(val["occlusion_recall"])
+            print(f"  ep{ep}: train_loss {tl.avg:.4f} | val_loss {val['loss']:.4f} | IoU {val['iou']:.4f} | "
+                  f"Dice {val['dice']:.4f} | RelaxedIoU {val['relaxed_iou']:.4f} | OccRecall {val['occlusion_recall']:.4f} | {dt:.0f}s")
+            with open(csv_path, "a", newline="") as f:
+                csv.writer(f).writerow([ep, f"{tl.avg:.5f}", f"{val['loss']:.5f}", f"{val['iou']:.5f}",
+                                        f"{val['dice']:.5f}", f"{val['relaxed_iou']:.5f}", f"{val['occlusion_recall']:.5f}",
+                                        f"{opt.param_groups[0]['lr']:.2e}", f"{dt:.0f}"])
+            viz.save_curves(hist, os.path.join(out_dir, "curves.png"))
+            if vis is not None:
+                viz.save_prediction_grid(vis[0], vis[1], vis[2], os.path.join(out_dir, f"preds_ep{ep:02d}.png"), occluded=vis[3])
+            meta = {"arch": arch, "encoder": encoder, "loss": args.loss, "datasets": args.datasets}
+            torch.save({"model": net.state_dict(), "cfg": cfg, "epoch": ep, **meta}, os.path.join(out_dir, "last.pt"))
+            if val["iou"] > best_iou:
+                best_iou, best_ep = val["iou"], ep
+                torch.save({"model": net.state_dict(), "cfg": cfg, "epoch": ep, "val": val, **meta}, os.path.join(out_dir, "best.pt"))
+            elif ep - best_ep >= patience * val_every:
+                print(f"  early stop (no IoU improvement for {patience * val_every} epochs)"); break
+        else:
+            dt = time.time() - t0
+            hist["train_loss"].append(tl.avg)
+            for k in ["val_loss", "val_iou", "val_dice", "val_relaxed_iou", "val_occ_recall"]:
+                hist[k].append(hist[k][-1] if hist[k] else 0.0)
+            print(f"  ep{ep}: train_loss {tl.avg:.4f} | {dt:.0f}s (skip val)")
+            with open(csv_path, "a", newline="") as f:
+                csv.writer(f).writerow([ep, f"{tl.avg:.5f}", "", "", "", "", "",
+                                        f"{opt.param_groups[0]['lr']:.2e}", f"{dt:.0f}"])
 
     summary = dict(best_epoch=best_ep, best_val_iou=best_iou,
                    final=({k: hist[k][-1] for k in hist}), n_train=len(tr_samples), n_val=len(va_samples),

@@ -12,6 +12,7 @@ _ARCH = {
     "unet": smp.Unet,
     "unetpp": smp.UnetPlusPlus,
     "deeplabv3plus": smp.DeepLabV3Plus,
+    "linknet": smp.Linknet,
 }
 
 

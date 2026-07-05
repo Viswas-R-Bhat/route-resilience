@@ -430,7 +430,7 @@ def chip_row(slide, chips, x0, x_right, y_center, base=9.5, h=0.32, gap=0.11):
 
 groups = [
     ("Data & Imagery", ORANGE, ["NumPy","OpenCV","Pillow","Albumentations","Web-Mercator tiling"]),
-    ("Segmentation (DL)", TEAL, ["PyTorch","SMP · U-Net/ResNet34","D4 TTA","Mixed-Precision (AMP)","clDice loss"]),
+    ("Segmentation (DL)", TEAL, ["PyTorch","SMP · U-Net/ResNet34","D4 TTA","Mixed-Precision (AMP)","Dice+BCE+Connectivity loss"]),
     ("Skeleton & Graph", BLUE, ["scikit-image · Zhang-Suen","sknw","NetworkX","SciPy cKDTree"]),
     ("Resilience & Analysis", PURPLE, ["Betweenness (k-sampled)","Union-Find healing","Flood-DEM ablation","Demand weighting"]),
     ("Dashboard & Backend", CYAN, ["Vanilla JS","Leaflet.js","Three.js (WebGL)","Apache ECharts","Python http.server"]),

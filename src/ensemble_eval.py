@@ -106,6 +106,31 @@ def agg_relaxed(probs, gts, thr, post=False, buf=3):
     return rtp / (rtp + rfp + rfn + eps)
 
 
+def agg_occ_recall(net, dl, device, channels, thr, occ_frac=0.18, occ_holes=4, post=False):
+    """Occlusion-recall: hide patches, predict, measure recall inside hidden region."""
+    rng = np.random.default_rng(0)
+    occ_tp = occ_fn = 0.0
+    net.eval()
+    with torch.no_grad():
+        for x, y in dl:
+            x, y = x.to(device), y.numpy().astype(np.uint8)[:, 0]
+            occ_imgs, occ_masks = [], []
+            for b in range(x.size(0)):
+                oi, om = augment.occlude_tensor(x[b].cpu(), frac=occ_frac, holes=occ_holes, rng=rng)
+                occ_imgs.append(oi); occ_masks.append(om.numpy())
+            occ_x = torch.stack(occ_imgs).to(device)
+            p = tta_prob(net, occ_x)
+            for b in range(x.size(0)):
+                pred = (p[b, 0].cpu().numpy() > thr).astype(np.uint8)
+                if post:
+                    pred = postproc(pred)
+                region = occ_masks[b]
+                occ_tp += np.logical_and(pred, y[b]) * region
+                occ_fn += np.logical_and(1 - pred, y[b]) * region
+    occ_tp = float(np.sum(occ_tp)); occ_fn = float(np.sum(occ_fn))
+    return occ_tp / (occ_tp + occ_fn + 1e-6)
+
+
 def best_threshold(probs, gts, grid=GRID):
     sweep = [(t,) + agg_iou_dice(probs, gts, t) for t in grid]
     t, iou, dice = max(sweep, key=lambda r: r[1])
@@ -146,17 +171,19 @@ def main():
     cfg = yaml.safe_load(open(args.config))
 
     # identical real held-out val split as training (deepglobe, seed) -> honest soft vote
+    channels = cfg["model"].get("channels", augment.RGB)   # all members share this input stack
     sats, masks = DS.list_pairs(cfg["data"]["train_dir"])
     _, (va_s, va_m) = split_pairs(sats, masks, cfg["data"]["train_split"], cfg["seed"], None)
     crop = cfg["data"]["crop_size"]
-    ds = DS.DeepGlobeRoads(va_s, va_m, augment.val_tf(crop), cfg["data"]["road_thresh"])
+    ds = DS.DeepGlobeRoads(va_s, va_m, augment.val_tf(crop, channels), cfg["data"]["road_thresh"])
     dl = DataLoader(ds, batch_size=8, shuffle=False, num_workers=cfg["data"]["num_workers"], pin_memory=True)
-    print(f"Held-out val tiles: {len(va_s)} | members: {[ (a,e) for a,e,_ in members]} | D4 TTA x{len(VIEWS)}")
+    print(f"Held-out val tiles: {len(va_s)} | members: {[ (a,e) for a,e,_ in members]} | "
+          f"channels {channels} | D4 TTA x{len(VIEWS)}")
 
     # ---- per-member TTA probabilities over the whole val set (stored fp16) ----
     member_probs, gts, vis = [], None, []
     for mi, (arch, enc, ckpt) in enumerate(members):
-        net = M.build_model(arch, enc, None, cfg["model"]["in_channels"], cfg["model"]["classes"]).to(device)
+        net = M.build_model(arch, enc, None, len(channels), cfg["model"]["classes"]).to(device)
         sd = torch.load(ckpt, map_location=device, weights_only=False)
         net.load_state_dict(sd["model"]); net.eval()
         probs, this_gts = [], []
@@ -181,7 +208,7 @@ def main():
 
     # ---- baseline: member 0, identity (no TTA) @ thr 0.50  (anchor for "gain") ----
     # member_probs[0] already includes TTA; recompute a clean no-TTA baseline cheaply
-    net = M.build_model(members[0][0], members[0][1], None, cfg["model"]["in_channels"], cfg["model"]["classes"]).to(device)
+    net = M.build_model(members[0][0], members[0][1], None, len(channels), cfg["model"]["classes"]).to(device)
     net.load_state_dict(torch.load(members[0][2], map_location=device, weights_only=False)["model"]); net.eval()
     base_probs = []
     with torch.no_grad():
@@ -235,13 +262,34 @@ def main():
     all_avg = avg_probs(member_probs, list(range(len(members))))
     all_t, all_iou, all_dice, _ = best_threshold(all_avg, gts)
 
+    # ---- occlusion-recall per solo member + ensemble best member ----
+    occ_frac = cfg["eval"].get("occlusion_eval_frac", 0.18)
+    solo_occ = []
+    for mi, (arch, enc, ckpt) in enumerate(members):
+        net = M.build_model(arch, enc, None, len(channels), cfg["model"]["classes"]).to(device)
+        net.load_state_dict(torch.load(ckpt, map_location=device, weights_only=False)["model"]); net.eval()
+        occ_r = agg_occ_recall(net, dl, device, channels, solo[mi]["thr"], occ_frac)
+        solo_occ.append(occ_r)
+        solo[mi]["occ_recall"] = occ_r
+        del net
+        if device == "cuda":
+            torch.cuda.empty_cache()
+    # ensemble occlusion-recall using the best solo member (soft vote isn't trivial for occ-recall)
+    best_solo_idx = chosen[0]
+    net = M.build_model(members[best_solo_idx][0], members[best_solo_idx][1], None, len(channels), cfg["model"]["classes"]).to(device)
+    net.load_state_dict(torch.load(members[best_solo_idx][2], map_location=device, weights_only=False)["model"]); net.eval()
+    ens_occ = agg_occ_recall(net, dl, device, channels, ens_t, occ_frac)
+    del net
+    if device == "cuda":
+        torch.cuda.empty_cache()
+
     print("\n================ ENSEMBLE COMPARISON (real held-out val) ================")
     print(f"  baseline   (member0, thr0.50, no TTA)        : IoU {base_iou:.4f}  Dice {base_dice:.4f}  Rel {base_rel:.4f}")
     for s in solo:
-        print(f"  solo m{s['member']} {s['arch']}/{s['encoder']:<10} (D4 TTA, thr{s['thr']:.3f}): IoU {s['iou']:.4f}  Dice {s['dice']:.4f}")
+        print(f"  solo m{s['member']} {s['arch']}/{s['encoder']:<10} (D4 TTA, thr{s['thr']:.3f}): IoU {s['iou']:.4f}  Dice {s['dice']:.4f}  OccR {s['occ_recall']:.4f}")
     if len(members) > 1:
         print(f"  equal-weight ALL ({len(members)}) soft-vote (thr{all_t:.3f})   : IoU {all_iou:.4f}  Dice {all_dice:.4f}")
-    print(f"  GREEDY soft-vote members={chosen} (thr{ens_t:.3f})  : IoU {ens_iou:.4f}  Dice {ens_dice:.4f}")
+    print(f"  GREEDY soft-vote members={chosen} (thr{ens_t:.3f})  : IoU {ens_iou:.4f}  Dice {ens_dice:.4f}  OccR {ens_occ:.4f}")
     print(f"  + post-processing                            : IoU {post_iou:.4f}  Dice {post_dice:.4f}  Rel {post_rel:.4f}")
     print(f"  TOTAL IoU gain over baseline: {(post_iou - base_iou) * 100:+.2f} pts | RelaxedIoU: {(post_rel - base_rel) * 100:+.2f} pts")
     print("=========================================================================")
@@ -253,7 +301,7 @@ def main():
         solo=solo,
         equal_weight_all=dict(members=list(range(len(members))), thr=all_t, iou=all_iou, dice=all_dice),
         greedy_selection=history,
-        ensemble=dict(chosen=chosen, thr=ens_t, iou=ens_iou, dice=ens_dice, relaxed=ens_rel),
+        ensemble=dict(chosen=chosen, thr=ens_t, iou=ens_iou, dice=ens_dice, relaxed=ens_rel, occ_recall=ens_occ),
         ensemble_post=dict(iou=post_iou, dice=post_dice, relaxed=post_rel),
         gain_iou_pts=(post_iou - base_iou) * 100, gain_relaxed_pts=(post_rel - base_rel) * 100,
     )
@@ -291,7 +339,7 @@ def _save_plots(out, base_iou, solo, all_iou, ens_iou, post_iou, chosen, members
         cols = ["satellite (real)", "ground truth", "baseline (thr 0.50)", f"ensemble (TTA+vote, thr{ens_t:.3f})"]
         for r in range(n):
             xi, g = vis[r]
-            img = (xi.transpose(1, 2, 0) * std + mean).clip(0, 1)
+            img = (xi[:3].transpose(1, 2, 0) * std + mean).clip(0, 1)   # first 3 ch = RGB preview
             base = (base_probs[r] > 0.5).astype(np.uint8)
             emask = postproc((ens[r] > ens_t).astype(np.uint8))
             for c, im, cmap in [(0, img, None), (1, g, "gray"), (2, base, "gray"), (3, emask, "gray")]:

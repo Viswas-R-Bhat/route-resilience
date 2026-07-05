@@ -13,6 +13,7 @@ runs/geo/*_pipeline.png
 runs/geo/*_dem.npy
 runs/**/*.gpickle
 runs/**/*.pt
+runs/**/*.npz
 
 # Ephemeral live-analysis tiles (generated on demand by the server)
 web/data/live_*

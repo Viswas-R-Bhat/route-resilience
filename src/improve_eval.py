@@ -82,15 +82,19 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     cfg = yaml.safe_load(open(args.config))
 
+    ck = torch.load(args.ckpt, map_location=device, weights_only=False)
+    mcfg = ck.get("cfg", cfg)["model"]                 # eval with the CKPT's own arch/channels
+    channels = mcfg.get("channels", augment.RGB)
+    print(f"  ckpt channels ({len(channels)}): {channels}")
+
     sats, masks = DS.list_pairs(cfg["data"]["train_dir"])
     _, (va_s, va_m) = split_pairs(sats, masks, cfg["data"]["train_split"], cfg["seed"], None)
     crop = cfg["data"]["crop_size"]
-    ds = DS.DeepGlobeRoads(va_s, va_m, augment.val_tf(crop), cfg["data"]["road_thresh"])
+    ds = DS.DeepGlobeRoads(va_s, va_m, augment.val_tf(crop, channels), cfg["data"]["road_thresh"])
     dl = DataLoader(ds, batch_size=8, shuffle=False, num_workers=cfg["data"]["num_workers"], pin_memory=True)
 
-    ck = torch.load(args.ckpt, map_location=device, weights_only=False)
-    net = M.build_model(cfg["model"]["arch"], cfg["model"]["encoder"], None,
-                        cfg["model"]["in_channels"], cfg["model"]["classes"]).to(device)
+    net = M.build_model(mcfg["arch"], mcfg["encoder"], None,
+                        len(channels), mcfg["classes"]).to(device)
     net.load_state_dict(ck["model"]); net.eval()
 
     probs_tta, gts = [], []
@@ -149,7 +153,7 @@ def main():
     fig, ax = plt.subplots(n, 4, figsize=(13, 3 * n))
     cols = ["satellite (real)", "ground truth", "baseline (thr 0.50)", f"improved (TTA+thr{best_t:.2f}+post)"]
     for r, (xi, g, pid, ptt) in enumerate(vis):
-        img = (xi.transpose(1, 2, 0) * std + mean).clip(0, 1)
+        img = (xi[:3].transpose(1, 2, 0) * std + mean).clip(0, 1)   # first 3 ch = RGB preview
         base = (pid > 0.5).astype(np.uint8)
         imp = postproc((ptt > best_t).astype(np.uint8))
         for c, im, cmap in [(0, img, None), (1, g, "gray"), (2, base, "gray"), (3, imp, "gray")]:

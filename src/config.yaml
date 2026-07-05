@@ -29,7 +29,7 @@ train:
   weight_decay: 0.00001
   amp: true                  # mixed precision -> fits 6GB VRAM
   scheduler: cosine
-  early_stop_patience: 8
+  early_stop_patience: 12
   device: cuda
   out_dir: C:/Users/VISWAS/route_data/runs/phase1   # local (non-OneDrive) — avoids re-syncing 85MB checkpoints each epoch
 
@@ -37,6 +37,8 @@ loss:
   dice: 0.5
   bce: 0.3
   connectivity: 0.2
+  warmup_dice_epochs: 8      # cldice curriculum: train pure Dice first, then swap to clDice
+                             #   (skeletonizing garbage early predictions is noisy — Dice warms up the mask)
 
 augment:
   occlusion_prob: 0.5        # synthetic-occlusion augmentation on REAL images

@@ -9,7 +9,8 @@ _STD = np.array([0.229, 0.224, 0.225])
 
 
 def denorm(img_t):
-    x = img_t.detach().cpu().numpy().transpose(1, 2, 0)
+    # first 3 channels are always RGB (extra bands like exr/hue/sat aren't shown in the preview)
+    x = img_t[:3].detach().cpu().numpy().transpose(1, 2, 0)
     return (x * _STD + _MEAN).clip(0, 1)
 
 
