@@ -9,7 +9,7 @@ import subprocess, sys, os, json, time, urllib.request, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 PY = sys.executable
-CKPT = "C:/Users/VISWAS/route_data/runs/phase1_full/best.pt"
+CKPT = "models/best.pt"
 os.chdir(ROOT)
 
 

@@ -13,6 +13,11 @@ runs/geo/*_pipeline.png
 runs/geo/*_dem.npy
 runs/**/*.gpickle
 runs/**/*.pt
+runs/loop/**/*_sat.png
+runs/loop/**/*_mask.png
+runs/loop/**/*_pipeline.png
+runs/osm_cache/
+.pytest_cache/
 
 # Ephemeral live-analysis tiles (generated on demand by the server)
 web/data/live_*

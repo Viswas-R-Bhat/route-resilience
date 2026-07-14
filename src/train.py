@@ -125,9 +125,23 @@ def main():
     ap.add_argument("--encoder")              # e.g. resnet34 | resnet50 | efficientnet-b4
     ap.add_argument("--loss", default="combined")  # combined | lovasz | cldice
     ap.add_argument("--datasets", default="deepglobe")  # deepglobe | deepglobe+mass
+    ap.add_argument("--init-from", help="checkpoint to fine-tune from (loads weights; arch/encoder/channels follow the ckpt)")
+    ap.add_argument("--lr", type=float, help="override train.lr (use a low lr, e.g. 1e-4, for fine-tuning)")
+    ap.add_argument("--train-dir", help="override data.train_dir")
+    ap.add_argument("--val-dir", help="explicit held-out val dir (skips the random split; e.g. unseen-city tiles)")
+    ap.add_argument("--repeat", type=int, default=1,
+                    help="repeat the train list N times per epoch (small tile sets: each pass takes a different random crop)")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config))
+    init_ck = None
+    if args.init_from:                       # fine-tune: model spec must match the checkpoint
+        init_ck = torch.load(args.init_from, map_location="cpu", weights_only=False)
+        ickm = init_ck["cfg"]["model"]
+        cfg["model"]["arch"] = ickm["arch"]; cfg["model"]["encoder"] = ickm["encoder"]
+        cfg["model"]["channels"] = ickm.get("channels", cfg["model"].get("channels"))
+    if args.train_dir:
+        cfg["data"]["train_dir"] = args.train_dir
     seed_all(cfg["seed"])
     torch.backends.cudnn.benchmark = True
 
@@ -142,8 +156,15 @@ def main():
     samples = DS.list_combined(args.datasets, cfg["data"]["train_dir"], cfg["data"].get("mass_root"))
     if not samples:
         sys.exit(f"[ERROR] No samples for datasets='{args.datasets}'. Check data paths in config.yaml.")
-    tr_samples, va_samples = split_samples(samples, cfg["data"]["train_split"], cfg["seed"], limit)
-    print(f"Datasets [{args.datasets}]: {len(samples)} real tiles | train {len(tr_samples)} | "
+    if args.val_dir:                          # honest generalization val: tiles from unseen areas
+        tr_samples = samples if not limit else samples[:limit]
+        va_samples = list(zip(*DS.list_pairs(args.val_dir)))
+        if not va_samples:
+            sys.exit(f"[ERROR] --val-dir {args.val_dir} has no *_sat.jpg/_mask.png pairs")
+    else:
+        tr_samples, va_samples = split_samples(samples, cfg["data"]["train_split"], cfg["seed"], limit)
+    tr_samples = tr_samples * max(1, args.repeat)
+    print(f"Datasets [{args.datasets}]: {len(samples)} real tiles | train {len(tr_samples)} (x{args.repeat}) | "
           f"val {len(va_samples)} | crop {crop} | bs {bs} | epochs {epochs} | device {device}")
 
     a = cfg["augment"]
@@ -162,6 +183,9 @@ def main():
     print(f"  input channels ({len(channels)}): {channels}")
     net = M.build_model(arch, encoder, cfg["model"]["encoder_weights"],
                         len(channels), cfg["model"]["classes"]).to(device)
+    if init_ck is not None:
+        net.load_state_dict(init_ck["model"])
+        print(f"  fine-tuning from {args.init_from} (epoch {init_ck.get('epoch')})")
     if args.loss == "lovasz":
         crit = losses.LovaszDiceLoss().to(device)
     elif args.loss == "cldice":
@@ -169,7 +193,7 @@ def main():
     else:
         crit = losses.CombinedLoss(cfg["loss"]["dice"], cfg["loss"]["bce"], cfg["loss"]["connectivity"]).to(device)
     print(f"  model: {arch} / {encoder} | loss: {args.loss} | datasets: {args.datasets}")
-    opt = torch.optim.AdamW(net.parameters(), lr=cfg["train"]["lr"], weight_decay=cfg["train"]["weight_decay"])
+    opt = torch.optim.AdamW(net.parameters(), lr=args.lr or cfg["train"]["lr"], weight_decay=cfg["train"]["weight_decay"])
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     scaler = GradScaler("cuda")
 

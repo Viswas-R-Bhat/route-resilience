@@ -74,7 +74,7 @@ def agg_relaxed(probs, gts, thr, post=False, buf=3):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ckpt", default="C:/Users/VISWAS/route_data/runs/phase1_full/best.pt")
+    ap.add_argument("--ckpt", default="models/best.pt")
     ap.add_argument("--config", default=os.path.join(os.path.dirname(__file__), "config.yaml"))
     ap.add_argument("--out", default="runs/phase1_full")
     args = ap.parse_args()

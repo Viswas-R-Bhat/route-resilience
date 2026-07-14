@@ -1,0 +1,305 @@
+{
+  "zoom": 18,
+  "grid": 8,
+  "widths": {
+    "motorway": 30,
+    "trunk": 26,
+    "motorway_link": 16,
+    "trunk_link": 16,
+    "primary": 20,
+    "primary_link": 14,
+    "secondary": 16,
+    "secondary_link": 12,
+    "tertiary": 12,
+    "tertiary_link": 10,
+    "unclassified": 9,
+    "residential": 9,
+    "living_street": 8
+  },
+  "sites": {
+    "blr_whitefield": {
+      "split": "train",
+      "lat": 12.9698,
+      "lon": 77.75,
+      "tiles": [
+        "blr_whitefield_0",
+        "blr_whitefield_1",
+        "blr_whitefield_2",
+        "blr_whitefield_3"
+      ]
+    },
+    "blr_yelahanka": {
+      "split": "train",
+      "lat": 13.1007,
+      "lon": 77.5963,
+      "tiles": [
+        "blr_yelahanka_0",
+        "blr_yelahanka_1",
+        "blr_yelahanka_2",
+        "blr_yelahanka_3"
+      ]
+    },
+    "blr_hebbal": {
+      "split": "train",
+      "lat": 13.0358,
+      "lon": 77.597,
+      "tiles": [
+        "blr_hebbal_0",
+        "blr_hebbal_1",
+        "blr_hebbal_2",
+        "blr_hebbal_3"
+      ]
+    },
+    "blr_banashankari": {
+      "split": "train",
+      "lat": 12.9255,
+      "lon": 77.5468,
+      "tiles": [
+        "blr_banashankari_0",
+        "blr_banashankari_1",
+        "blr_banashankari_2",
+        "blr_banashankari_3"
+      ]
+    },
+    "koc_kochi": {
+      "split": "train",
+      "lat": 9.9816,
+      "lon": 76.2999,
+      "tiles": [
+        "koc_kochi_0",
+        "koc_kochi_1",
+        "koc_kochi_2",
+        "koc_kochi_3"
+      ]
+    },
+    "tvm_trivandrum": {
+      "split": "train",
+      "lat": 8.5241,
+      "lon": 76.9366,
+      "tiles": [
+        "tvm_trivandrum_0",
+        "tvm_trivandrum_1",
+        "tvm_trivandrum_2",
+        "tvm_trivandrum_3"
+      ]
+    },
+    "clt_kozhikode": {
+      "split": "train",
+      "lat": 11.2588,
+      "lon": 75.7804,
+      "tiles": [
+        "clt_kozhikode_0",
+        "clt_kozhikode_1",
+        "clt_kozhikode_2",
+        "clt_kozhikode_3"
+      ]
+    },
+    "del_karolbagh": {
+      "split": "train",
+      "lat": 28.6519,
+      "lon": 77.1909,
+      "tiles": [
+        "del_karolbagh_0",
+        "del_karolbagh_1",
+        "del_karolbagh_2",
+        "del_karolbagh_3"
+      ]
+    },
+    "del_rohini": {
+      "split": "train",
+      "lat": 28.736,
+      "lon": 77.117,
+      "tiles": [
+        "del_rohini_0",
+        "del_rohini_1",
+        "del_rohini_2",
+        "del_rohini_3"
+      ]
+    },
+    "bom_andheri": {
+      "split": "train",
+      "lat": 19.1197,
+      "lon": 72.8468,
+      "tiles": [
+        "bom_andheri_0",
+        "bom_andheri_1",
+        "bom_andheri_2",
+        "bom_andheri_3"
+      ]
+    },
+    "maa_annanagar": {
+      "split": "train",
+      "lat": 13.085,
+      "lon": 80.2101,
+      "tiles": [
+        "maa_annanagar_0",
+        "maa_annanagar_1",
+        "maa_annanagar_2",
+        "maa_annanagar_3"
+      ]
+    },
+    "hyd_secbad": {
+      "split": "train",
+      "lat": 17.4399,
+      "lon": 78.4983,
+      "tiles": [
+        "hyd_secbad_0",
+        "hyd_secbad_1",
+        "hyd_secbad_2",
+        "hyd_secbad_3"
+      ]
+    },
+    "pnq_pune": {
+      "split": "train",
+      "lat": 18.5074,
+      "lon": 73.8077,
+      "tiles": [
+        "pnq_pune_0",
+        "pnq_pune_1",
+        "pnq_pune_2",
+        "pnq_pune_3"
+      ]
+    },
+    "jai_jaipur": {
+      "split": "train",
+      "lat": 26.9124,
+      "lon": 75.7873,
+      "tiles": [
+        "jai_jaipur_0",
+        "jai_jaipur_1",
+        "jai_jaipur_2",
+        "jai_jaipur_3"
+      ]
+    },
+    "jod_jodhpur": {
+      "split": "train",
+      "lat": 26.2389,
+      "lon": 73.0243,
+      "tiles": [
+        "jod_jodhpur_1",
+        "jod_jodhpur_2"
+      ]
+    },
+    "ldh_ludhiana": {
+      "split": "train",
+      "lat": 30.901,
+      "lon": 75.8573,
+      "tiles": [
+        "ldh_ludhiana_0",
+        "ldh_ludhiana_1",
+        "ldh_ludhiana_2",
+        "ldh_ludhiana_3"
+      ]
+    },
+    "lko_lucknow": {
+      "split": "train",
+      "lat": 26.8467,
+      "lon": 80.9462,
+      "tiles": [
+        "lko_lucknow_0",
+        "lko_lucknow_1",
+        "lko_lucknow_2",
+        "lko_lucknow_3"
+      ]
+    },
+    "ghy_guwahati": {
+      "split": "train",
+      "lat": 26.1445,
+      "lon": 91.7362,
+      "tiles": [
+        "ghy_guwahati_0",
+        "ghy_guwahati_1",
+        "ghy_guwahati_2",
+        "ghy_guwahati_3"
+      ]
+    },
+    "chd_chandigarh": {
+      "split": "train",
+      "lat": 30.7333,
+      "lon": 76.7794,
+      "tiles": [
+        "chd_chandigarh_0",
+        "chd_chandigarh_1",
+        "chd_chandigarh_2",
+        "chd_chandigarh_3"
+      ]
+    },
+    "rur_devanahalli": {
+      "split": "train",
+      "lat": 13.2437,
+      "lon": 77.713,
+      "tiles": [
+        "rur_devanahalli_0",
+        "rur_devanahalli_1",
+        "rur_devanahalli_2",
+        "rur_devanahalli_3"
+      ]
+    },
+    "rur_ramanagara": {
+      "split": "train",
+      "lat": 12.7217,
+      "lon": 77.2812,
+      "tiles": [
+        "rur_ramanagara_0",
+        "rur_ramanagara_1",
+        "rur_ramanagara_2",
+        "rur_ramanagara_3"
+      ]
+    },
+    "rur_hoskote": {
+      "split": "train",
+      "lat": 13.0707,
+      "lon": 77.798,
+      "tiles": [
+        "rur_hoskote_0",
+        "rur_hoskote_1",
+        "rur_hoskote_2",
+        "rur_hoskote_3"
+      ]
+    },
+    "val_coimbatore": {
+      "split": "val",
+      "lat": 11.0168,
+      "lon": 76.9558,
+      "tiles": [
+        "val_coimbatore_0",
+        "val_coimbatore_1",
+        "val_coimbatore_2",
+        "val_coimbatore_3"
+      ]
+    },
+    "val_ahmedabad": {
+      "split": "val",
+      "lat": 23.0225,
+      "lon": 72.5714,
+      "tiles": [
+        "val_ahmedabad_0",
+        "val_ahmedabad_1",
+        "val_ahmedabad_2",
+        "val_ahmedabad_3"
+      ]
+    },
+    "val_bhubaneswar": {
+      "split": "val",
+      "lat": 20.2961,
+      "lon": 85.8245,
+      "tiles": [
+        "val_bhubaneswar_0",
+        "val_bhubaneswar_1",
+        "val_bhubaneswar_2",
+        "val_bhubaneswar_3"
+      ]
+    },
+    "val_thrissur": {
+      "split": "val",
+      "lat": 10.5276,
+      "lon": 76.2144,
+      "tiles": [
+        "val_thrissur_0",
+        "val_thrissur_1",
+        "val_thrissur_2",
+        "val_thrissur_3"
+      ]
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "tag": "v1model_newheal",
+  "ckpt": "models/best.pt",
+  "thr": 0.35,
+  "max_gap": 95,
+  "ang_tol": 50,
+  "time": "2026-07-14 16:39",
+  "sectors": {
+    "blr_hsr": {
+      "recall": 0.6803,
+      "precision": 0.8229,
+      "f1": 0.7449,
+      "routing_success": 0.93,
+      "median_plerr_pct": 11.31,
+      "lcc_after": 0.9908,
+      "nodes": 218
+    },
+    "blr_jayanagar": {
+      "recall": 0.572,
+      "precision": 0.805,
+      "f1": 0.6688,
+      "routing_success": 0.71,
+      "median_plerr_pct": 93.7,
+      "lcc_after": 0.8684,
+      "nodes": 1185
+    },
+    "blr_rajajinagar": {
+      "recall": 0.6791,
+      "precision": 0.799,
+      "f1": 0.7342,
+      "routing_success": 0.935,
+      "median_plerr_pct": 44.1,
+      "lcc_after": 0.9697,
+      "nodes": 1685
+    },
+    "blr_res": {
+      "recall": 0.5551,
+      "precision": 0.7341,
+      "f1": 0.6322,
+      "routing_success": 0.57,
+      "median_plerr_pct": 35.4,
+      "lcc_after": 0.686,
+      "nodes": 1223
+    },
+    "blr_sector": {
+      "recall": 0.6084,
+      "precision": 0.7234,
+      "f1": 0.6609,
+      "routing_success": 0.7,
+      "median_plerr_pct": 17.59,
+      "lcc_after": 0.8187,
+      "nodes": 1026
+    }
+  },
+  "average": {
+    "recall": 0.619,
+    "precision": 0.7769,
+    "f1": 0.6882,
+    "routing_success": 0.769,
+    "median_plerr_pct": 40.42,
+    "lcc_after": 0.8667,
+    "nodes": 1067.4
+  },
+  "coverage_method": "centerline"
+}

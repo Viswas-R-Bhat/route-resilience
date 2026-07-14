@@ -38,16 +38,24 @@ def latlng_to_px(lat, lon, b, W, H):
     return x, y
 
 
-def fetch_osm(b, timeout=60, tries=4):
+def fetch_osm(b, timeout=60, tries=4, cache_dir="runs/osm_cache"):
     q = (f'[out:json][timeout:45];'
          f'(way["highway"]({b["south"]},{b["west"]},{b["north"]},{b["east"]}););'
          f'(._;>;);out body;')
+    # disk cache: OSM for a fixed bbox is stable within a session; spares Overpass rate limits
+    key = f"{b['south']:.6f}_{b['west']:.6f}_{b['north']:.6f}_{b['east']:.6f}.json"
+    cpath = os.path.join(cache_dir, key)
+    if os.path.exists(cpath):
+        return json.load(open(cpath, encoding="utf-8"))
     data = urllib.parse.urlencode({"data": q}).encode()
     for k in range(tries):
         try:
             req = urllib.request.Request(OVERPASS, data=data,
                                          headers={"User-Agent": "RouteResilience/1.0 (ISRO hackathon)"})
-            return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+            out = json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+            os.makedirs(cache_dir, exist_ok=True)
+            json.dump(out, open(cpath, "w", encoding="utf-8"))
+            return out
         except urllib.error.HTTPError as e:                 # 429 rate-limit / 504 gateway -> back off
             if e.code in (429, 504) and k < tries - 1:
                 time.sleep(6 * (k + 1))
@@ -111,16 +119,25 @@ def estimate_offset(osm_mask, model_mask, search=12, step=2):
 
 
 def coverage(osm_mask, model_mask, buffer=5):
-    """Buffered (relaxed) overlap of model mask vs OSM ground-truth roads."""
+    """Centerline coverage vs OSM ground truth (Wiedemann completeness/correctness).
+
+    Both legs compare CENTERLINES with a buffer tolerance, so road WIDTH doesn't bias the
+    score: a model that paints the true full-width surface of a correctly-found road must not
+    lose precision for it (the old full-mask precision capped ~0.5 once masks became
+    width-realistic). recall = completeness (OSM centerline near predicted road);
+    precision = correctness (predicted centerline near OSM road)."""
+    from skimage.morphology import skeletonize
     k = 2 * buffer + 1
     ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
-    o, m = osm_mask.astype(bool), model_mask.astype(bool)
-    o_near_m = o & cv2.dilate(model_mask, ker).astype(bool)     # OSM road within buffer of a prediction
-    m_near_o = m & cv2.dilate(osm_mask, ker).astype(bool)       # prediction within buffer of an OSM road
+    o = osm_mask.astype(bool)
+    sk = skeletonize(model_mask.astype(bool))
+    o_near_m = o & cv2.dilate(model_mask, ker).astype(bool)     # OSM centerline within buffer of a prediction
+    sk_near_o = sk & cv2.dilate(osm_mask, ker).astype(bool)     # predicted centerline within buffer of an OSM road
     recall = float(o_near_m.sum()) / max(1, int(o.sum()))
-    precision = float(m_near_o.sum()) / max(1, int(m.sum()))
+    precision = float(sk_near_o.sum()) / max(1, int(sk.sum()))
     f1 = 2 * recall * precision / max(1e-9, recall + precision)
-    return dict(recall=round(recall, 4), precision=round(precision, 4), f1=round(f1, 4), buffer_px=buffer)
+    return dict(recall=round(recall, 4), precision=round(precision, 4), f1=round(f1, 4),
+                buffer_px=buffer, method="centerline")
 
 
 def path_length_error(model_G, osm_G, W, H, res_m=None, n_pairs=200, max_snap_px=45, seed=42):

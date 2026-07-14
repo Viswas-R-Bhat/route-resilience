@@ -13,7 +13,7 @@ Members share the identical val split (same seed / dataset), so the soft vote is
 
 Usage:
   python src/ensemble_eval.py \
-    --member unet resnet34 C:/Users/VISWAS/route_data/runs/phase1_full/best.pt \
+    --member unet resnet34 models/best.pt \
     --member deeplabv3plus resnet34 C:/Users/VISWAS/route_data/runs/phase1_dlv3p/best.pt \
     --member unetpp resnet34 C:/Users/VISWAS/route_data/runs/phase1_unetpp/best.pt \
     --out runs/ensemble
@@ -30,7 +30,7 @@ import augment, dataset as DS, model as M
 from train import split_pairs
 
 GRID = [round(t, 3) for t in np.arange(0.20, 0.701, 0.025)]
-DEFAULT_FULL = "C:/Users/VISWAS/route_data/runs/phase1_full/best.pt"
+DEFAULT_FULL = "models/best.pt"
 
 
 # ----------------------------------------------------------------------------- TTA

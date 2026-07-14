@@ -1,0 +1,65 @@
+{
+  "tag": "ft_v1_thr50",
+  "ckpt": "C:/Users/VISWAS/route_data/runs/ft_v1/best.pt",
+  "thr": 0.5,
+  "max_gap": 95,
+  "ang_tol": 50,
+  "time": "2026-07-14 21:54",
+  "sectors": {
+    "blr_hsr": {
+      "recall": 0.8669,
+      "precision": 0.7867,
+      "f1": 0.8248,
+      "routing_success": 0.99,
+      "median_plerr_pct": 4.72,
+      "lcc_after": 0.9938,
+      "nodes": 324
+    },
+    "blr_jayanagar": {
+      "recall": 0.8243,
+      "precision": 0.7745,
+      "f1": 0.7986,
+      "routing_success": 0.975,
+      "median_plerr_pct": 13.76,
+      "lcc_after": 0.9862,
+      "nodes": 2034
+    },
+    "blr_rajajinagar": {
+      "recall": 0.8981,
+      "precision": 0.777,
+      "f1": 0.8332,
+      "routing_success": 1.0,
+      "median_plerr_pct": 8.09,
+      "lcc_after": 1.0,
+      "nodes": 2794
+    },
+    "blr_res": {
+      "recall": 0.7872,
+      "precision": 0.7326,
+      "f1": 0.7589,
+      "routing_success": 0.87,
+      "median_plerr_pct": 12.97,
+      "lcc_after": 0.8766,
+      "nodes": 1921
+    },
+    "blr_sector": {
+      "recall": 0.8314,
+      "precision": 0.7408,
+      "f1": 0.7835,
+      "routing_success": 0.97,
+      "median_plerr_pct": 6.49,
+      "lcc_after": 0.9874,
+      "nodes": 1747
+    }
+  },
+  "average": {
+    "recall": 0.8416,
+    "precision": 0.7623,
+    "f1": 0.7998,
+    "routing_success": 0.961,
+    "median_plerr_pct": 9.206,
+    "lcc_after": 0.9688,
+    "nodes": 1764.0
+  },
+  "coverage_method": "centerline"
+}

@@ -16,7 +16,7 @@ import augment, dataset as DS, model as M
 from train import split_pairs
 from improve_eval import tta_prob
 
-CKPT = "C:/Users/VISWAS/route_data/runs/phase1_full/best.pt"
+CKPT = "models/best.pt"
 OUT = "runs/phase1_full"
 EMPTY_PX = 64          # GT road px below this -> "no-road" tile
 K = 3                  # examples shown per bucket
