@@ -108,6 +108,37 @@ def _canopy_overlap(p1, p2, veg, samples=32):
     return float(veg[ys, xs].mean())
 
 
+def _prob_path(prob, p1, p2, margin=24):
+    """Least-cost path between two endpoints through the model's probability map.
+
+    Bridges should follow the *image evidence* (faint road pixels under canopy/shadow), not a
+    straight ruler line. Returns (pts (row,col) float array, mean-prob evidence, path length px)
+    or (None, None, None) when no path is computable. Runs on a local window for speed.
+    """
+    try:
+        from skimage.graph import route_through_array
+    except ImportError:
+        return None, None, None
+    Hh, Ww = prob.shape
+    x0 = int(max(0, min(p1[0], p2[0]) - margin)); x1 = int(min(Ww, max(p1[0], p2[0]) + margin + 1))
+    y0 = int(max(0, min(p1[1], p2[1]) - margin)); y1 = int(min(Hh, max(p1[1], p2[1]) + margin + 1))
+    sub = prob[y0:y1, x0:x1]
+    if sub.size == 0:
+        return None, None, None
+    cost = 1.02 - sub.astype(np.float64)                 # strictly positive; low cost on road evidence
+    start = (int(np.clip(p1[1] - y0, 0, sub.shape[0] - 1)), int(np.clip(p1[0] - x0, 0, sub.shape[1] - 1)))
+    end = (int(np.clip(p2[1] - y0, 0, sub.shape[0] - 1)), int(np.clip(p2[0] - x0, 0, sub.shape[1] - 1)))
+    try:
+        idx, _ = route_through_array(cost, start, end, fully_connected=True, geometric=True)
+    except Exception:
+        return None, None, None
+    pts = np.array([[r + y0, c + x0] for r, c in idx], dtype=float)   # (row, col), like sknw edges
+    evid = float(np.mean([prob[int(r), int(c)] for r, c in pts]))
+    seg = np.diff(pts, axis=0)
+    plen = float(np.hypot(seg[:, 0], seg[:, 1]).sum()) if len(pts) > 1 else 1.0
+    return pts, evid, max(plen, 1.0)
+
+
 def _line_offset(p0, ang_deg, p):
     """Perpendicular distance from point `p` to the infinite line through `p0` at `ang_deg`."""
     a = np.radians(ang_deg)
@@ -137,7 +168,8 @@ def _aligned(p1, p2, a1, a2, ang_tol, corridor_px):
 def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
                canopy_max_gap_px=None, canopy_angular_tolerance_deg=None,
                exg_floor=12, dense_pct=78, canopy_frac=0.5, corridor_px=16,
-               saturation_frac=0.6):
+               saturation_frac=0.6, prob=None, evid_hi=0.22, evid_veto=0.04,
+               stretch_max=1.8):
     """Return (healed_graph, n_healed). Synthetic edges carry healed=True,
     heal_kind in {"canopy", "geom"}, a confidence `conf` in {"med", "low", "vlow"}, and
     canopy_frac (span fraction over canopy). Scene-level stats land on H.graph
@@ -182,6 +214,9 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
             candidates.append((dist, n1, n2))
     candidates.sort()                                    # shortest gaps first (MST-like)
 
+    if prob is not None:
+        search_r = max(search_r, cg)                     # evidence paths may use the widest gate
+
     healed = 0
     for dist, n1, n2 in candidates:
         if uf.connected(n1, n2):
@@ -191,15 +226,31 @@ def heal_graph(G, max_gap_px=60, angular_tolerance_deg=35, depth=3, rgb=None,
         is_canopy = over >= req_frac                     # bridge mostly over dense canopy -> occlusion
         eff_gap = cg if is_canopy else max_gap_px
         eff_ang = ca if is_canopy else angular_tolerance_deg
-        if dist > eff_gap:
-            continue
+
+        # probability evidence: least-cost path through the model's soft output
+        ppts = evid = plen = None
+        if prob is not None and dist <= max(eff_gap, cg):
+            ppts, evid, plen = _prob_path(prob, p1, p2)
+
         a1 = compute_road_angle(H, n1, depth); a2 = compute_road_angle(H, n2, depth)
-        if not _aligned(p1, p2, a1, a2, eff_ang, corridor_px):
+        aligned = dist <= eff_gap and _aligned(p1, p2, a1, a2, eff_ang, corridor_px)
+
+        if evid is not None and evid >= evid_hi and plen <= max(dist, 4.0) * stretch_max:
+            # the imagery itself shows a faint road and the path follows it (may curve)
+            kind = "canopy" if is_canopy else "trace"
+            conf = "med" if evid >= 0.35 else "low"
+            H.add_edge(n1, n2, weight=plen, length_px=plen, healed=True, heal_kind=kind,
+                       conf=conf, canopy_frac=round(over, 3), evidence=round(evid, 3), pts=ppts)
+        elif aligned:
+            if (evid is not None) and (not is_canopy) and evid < evid_veto:
+                continue                                 # open ground + model says "nothing there" -> don't invent
+            kind = "canopy" if is_canopy else "geom"
+            conf = ("vlow" if saturated else "low") if is_canopy else "med"
+            H.add_edge(n1, n2, weight=dist, length_px=dist, healed=True, heal_kind=kind,
+                       conf=conf, canopy_frac=round(over, 3),
+                       **({"evidence": round(evid, 3)} if evid is not None else {}))
+        else:
             continue
-        kind = "canopy" if is_canopy else "geom"
-        conf = ("vlow" if saturated else "low") if is_canopy else "med"   # visible roads = "high"
-        H.add_edge(n1, n2, weight=dist, length_px=dist, healed=True,
-                   heal_kind=kind, conf=conf, canopy_frac=round(over, 3))
         uf.union(n1, n2)
         healed += 1
     return H, healed

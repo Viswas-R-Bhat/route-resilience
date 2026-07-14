@@ -70,6 +70,24 @@ def test_heal_never_connects_same_component():
     assert healed == 0                                      # single component: nothing to do
 
 
+def test_prob_guided_heal_traces_evidence():
+    G = skeleton_to_graph(mask_to_skeleton(gap_mask(30)))
+    prob = np.zeros((128, 128), np.float32)
+    prob[62:67, :] = 0.4                                    # faint road evidence across the gap
+    H, healed = heal_graph(G, max_gap_px=50, angular_tolerance_deg=35, prob=prob)
+    assert healed >= 1
+    traced = [d for *_, d in H.edges(data=True) if d.get("heal_kind") == "trace"]
+    assert traced and all(d.get("pts") is not None and d["weight"] > 0 for d in traced)
+    assert all(0.0 <= d["evidence"] <= 1.0 for d in traced)
+
+
+def test_prob_veto_blocks_empty_open_ground():
+    G = skeleton_to_graph(mask_to_skeleton(gap_mask(20)))
+    prob = np.zeros((128, 128), np.float32)                 # model: definitely nothing anywhere
+    H, healed = heal_graph(G, max_gap_px=40, angular_tolerance_deg=35, prob=prob)
+    assert healed == 0                                      # same gap heals geometrically w/o prob
+
+
 def test_connectivity_report_math():
     G = nx.Graph(); G.add_nodes_from([(0, {"pos": (0, 0)}), (1, {"pos": (10, 0)})])
     H = G.copy(); H.add_edge(0, 1, weight=10.0)

@@ -17,15 +17,92 @@
     "living_street": 8
   },
   "sites": {
-    "rur_hoskote": {
+    "blr_whitefield": {
       "split": "train",
-      "lat": 13.0707,
-      "lon": 77.798,
+      "lat": 12.9698,
+      "lon": 77.75,
       "tiles": [
-        "rur_hoskote_0",
-        "rur_hoskote_1",
-        "rur_hoskote_2",
-        "rur_hoskote_3"
+        "blr_whitefield_0",
+        "blr_whitefield_1",
+        "blr_whitefield_2",
+        "blr_whitefield_3"
+      ]
+    },
+    "blr_yelahanka": {
+      "split": "train",
+      "lat": 13.1007,
+      "lon": 77.5963,
+      "tiles": [
+        "blr_yelahanka_0",
+        "blr_yelahanka_1",
+        "blr_yelahanka_2",
+        "blr_yelahanka_3"
+      ]
+    },
+    "blr_hebbal": {
+      "split": "train",
+      "lat": 13.0358,
+      "lon": 77.597,
+      "tiles": [
+        "blr_hebbal_0",
+        "blr_hebbal_1",
+        "blr_hebbal_2",
+        "blr_hebbal_3"
+      ]
+    },
+    "blr_banashankari": {
+      "split": "train",
+      "lat": 12.9255,
+      "lon": 77.5468,
+      "tiles": [
+        "blr_banashankari_0",
+        "blr_banashankari_1",
+        "blr_banashankari_2",
+        "blr_banashankari_3"
+      ]
+    },
+    "koc_kochi": {
+      "split": "train",
+      "lat": 9.9816,
+      "lon": 76.2999,
+      "tiles": [
+        "koc_kochi_0",
+        "koc_kochi_1",
+        "koc_kochi_2",
+        "koc_kochi_3"
+      ]
+    },
+    "tvm_trivandrum": {
+      "split": "train",
+      "lat": 8.5241,
+      "lon": 76.9366,
+      "tiles": [
+        "tvm_trivandrum_0",
+        "tvm_trivandrum_1",
+        "tvm_trivandrum_2",
+        "tvm_trivandrum_3"
+      ]
+    },
+    "clt_kozhikode": {
+      "split": "train",
+      "lat": 11.2588,
+      "lon": 75.7804,
+      "tiles": [
+        "clt_kozhikode_0",
+        "clt_kozhikode_1",
+        "clt_kozhikode_2",
+        "clt_kozhikode_3"
+      ]
+    },
+    "del_karolbagh": {
+      "split": "train",
+      "lat": 28.6519,
+      "lon": 77.1909,
+      "tiles": [
+        "del_karolbagh_0",
+        "del_karolbagh_1",
+        "del_karolbagh_2",
+        "del_karolbagh_3"
       ]
     }
   }

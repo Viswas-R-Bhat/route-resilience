@@ -43,6 +43,7 @@ def main():
     if args.mask:
         img = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGB) if args.image else None
         mask = (cv2.imread(args.mask, cv2.IMREAD_GRAYSCALE) > 127).astype(np.uint8)
+        prob = None
         stem = os.path.splitext(os.path.basename(args.mask))[0]
         print(f"[1/4] using provided mask ({mask.shape}, {mask.mean()*100:.1f}% road)")
     else:
@@ -51,8 +52,8 @@ def main():
         stem = os.path.splitext(os.path.basename(args.image))[0].replace("_sat", "")
         net = predict.load_net(args.ckpt, args.device)
         print(f"[1/4] segmenting on {args.device} (D4 TTA={not args.no_tta}, thr={args.thr}) ...")
-        mask, _ = predict.predict_full(net, img, args.device, tile=512, overlap=64,
-                                       thr=args.thr, tta=not args.no_tta)
+        mask, prob = predict.predict_full(net, img, args.device, tile=512, overlap=64,
+                                          thr=args.thr, tta=not args.no_tta)
     cv2.imwrite(os.path.join(args.out, f"{stem}_mask.png"), mask * 255)
     if img is not None:
         cv2.imwrite(os.path.join(args.out, f"{stem}_sat.png"), cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -62,21 +63,22 @@ def main():
     raw_stats = graph_stats(G)
     print(f"[2/4] graph: {raw_stats['nodes']} nodes / {raw_stats['edges']} edges / {raw_stats['components']} components")
 
-    # ---- Phase 3: healing (canopy-aware when the RGB tile is available) ----
-    H, healed = heal_graph(G, args.max_gap, args.ang_tol, rgb=img)
+    # ---- Phase 3: healing (canopy-aware + probability-guided when soft output available) ----
+    H, healed = heal_graph(G, args.max_gap, args.ang_tol, rgb=img, prob=prob)
     conn = connectivity_report(G, H)
     n_canopy = sum(d.get("heal_kind") == "canopy" for _, _, d in H.edges(data=True))
     n_geom = sum(d.get("heal_kind") == "geom" for _, _, d in H.edges(data=True))
+    n_trace = sum(d.get("heal_kind") == "trace" for _, _, d in H.edges(data=True))
     scene_green = H.graph.get("canopy_frac_scene", 0.0)
     saturated = H.graph.get("canopy_saturated", False)
-    print(f"[3/4] healed: +{healed} bridges ({n_canopy} under canopy / {n_geom} open) | "
+    print(f"[3/4] healed: +{healed} bridges ({n_canopy} canopy / {n_trace} evidence-traced / {n_geom} open) | "
           f"scene canopy {scene_green*100:.0f}%{' [SATURATED-conservative]' if saturated else ''} | "
           f"components {conn['components_before']}->{conn['components_after']} | "
           f"LCC {conn['lcc_frac_before']*100:.0f}%->{conn['lcc_frac_after']*100:.0f}%")
 
     # ---- Phase 4: criticality + resilience ----
     report = dict(stem=stem, raw_graph=raw_stats, connectivity=conn, healed_bridges=healed,
-                  healed_canopy=n_canopy, healed_geom=n_geom,
+                  healed_canopy=n_canopy, healed_geom=n_geom, healed_trace=n_trace,
                   scene_canopy_frac=scene_green, canopy_saturated=bool(saturated))
     if H.number_of_nodes() >= 4:
         ranked = compute_centrality(H)
@@ -136,9 +138,12 @@ def main():
             eb = d.get("edge_betweenness", 0) / emax
             color = (min(1, .1 + eb), max(0, .8 - eb), max(0, .5 - eb))
             if d.get("healed"):
-                p1 = H.nodes[u]["pos"]; p2 = H.nodes[v]["pos"]
-                hc = "#7ed957" if d.get("heal_kind") == "canopy" else "#ffcc00"
-                ax[1, 0].plot([p1[0], p2[0]], [p1[1], p2[1]], "--", color=hc, lw=2)
+                hc = {"canopy": "#7ed957", "trace": "#4fc3f7"}.get(d.get("heal_kind"), "#ffcc00")
+                if d.get("pts") is not None:               # evidence-traced bridges follow the imagery
+                    p = np.asarray(d["pts"]); ax[1, 0].plot(p[:, 1], p[:, 0], "--", color=hc, lw=2)
+                else:
+                    p1 = H.nodes[u]["pos"]; p2 = H.nodes[v]["pos"]
+                    ax[1, 0].plot([p1[0], p2[0]], [p1[1], p2[1]], "--", color=hc, lw=2)
             else:
                 p = d["pts"]; ax[1, 0].plot(p[:, 1], p[:, 0], "-", color=color, lw=1 + 5 * eb)
         cmap = {"critical": "#ff2b2b", "important": "#ffb347", "normal": "#00e6bd"}
