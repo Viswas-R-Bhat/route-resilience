@@ -38,16 +38,24 @@ def latlng_to_px(lat, lon, b, W, H):
     return x, y
 
 
-def fetch_osm(b, timeout=60, tries=4):
+def fetch_osm(b, timeout=60, tries=4, cache_dir="runs/osm_cache"):
     q = (f'[out:json][timeout:45];'
          f'(way["highway"]({b["south"]},{b["west"]},{b["north"]},{b["east"]}););'
          f'(._;>;);out body;')
+    # disk cache: OSM for a fixed bbox is stable within a session; spares Overpass rate limits
+    key = f"{b['south']:.6f}_{b['west']:.6f}_{b['north']:.6f}_{b['east']:.6f}.json"
+    cpath = os.path.join(cache_dir, key)
+    if os.path.exists(cpath):
+        return json.load(open(cpath, encoding="utf-8"))
     data = urllib.parse.urlencode({"data": q}).encode()
     for k in range(tries):
         try:
             req = urllib.request.Request(OVERPASS, data=data,
                                          headers={"User-Agent": "RouteResilience/1.0 (ISRO hackathon)"})
-            return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+            out = json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+            os.makedirs(cache_dir, exist_ok=True)
+            json.dump(out, open(cpath, "w", encoding="utf-8"))
+            return out
         except urllib.error.HTTPError as e:                 # 429 rate-limit / 504 gateway -> back off
             if e.code in (429, 504) and k < tries - 1:
                 time.sleep(6 * (k + 1))

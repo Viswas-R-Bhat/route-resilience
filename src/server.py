@@ -15,8 +15,8 @@ import http.server, socketserver, json, os, sys, subprocess, time, urllib.parse,
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB = os.path.join(ROOT, "web")
-ROUTE_PY = r"C:/Users/VISWAS/anaconda3/envs/route/python.exe"
-CKPT = "C:/Users/VISWAS/route_data/runs/phase1_full/best.pt"
+ROUTE_PY = r"C:/Users/VISWAS/route_env/Scripts/python.exe"          # project venv (torch+cuda)
+CKPT = os.path.join(ROOT, "models", "best.pt")
 _LOCK = threading.Lock()   # serialize GPU pipeline runs
 
 

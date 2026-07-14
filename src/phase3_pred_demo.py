@@ -17,7 +17,7 @@ from phase3_heal import heal_graph, connectivity_report
 
 torch.set_num_threads(4)                      # be polite to the training's CPU dataloaders
 DG = "C:/Users/VISWAS/route_data/deepglobe/train"
-CKPT = "C:/Users/VISWAS/route_data/runs/phase1_full/best.pt"
+CKPT = "models/best.pt"
 OUT = "runs/phase3"; os.makedirs(OUT, exist_ok=True)
 CROP, MAX_GAP, ANG_TOL = 512, 50, 35
 

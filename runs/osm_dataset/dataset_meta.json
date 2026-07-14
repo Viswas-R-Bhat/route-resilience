@@ -1,0 +1,32 @@
+{
+  "zoom": 18,
+  "grid": 8,
+  "widths": {
+    "motorway": 30,
+    "trunk": 26,
+    "motorway_link": 16,
+    "trunk_link": 16,
+    "primary": 20,
+    "primary_link": 14,
+    "secondary": 16,
+    "secondary_link": 12,
+    "tertiary": 12,
+    "tertiary_link": 10,
+    "unclassified": 9,
+    "residential": 9,
+    "living_street": 8
+  },
+  "sites": {
+    "rur_hoskote": {
+      "split": "train",
+      "lat": 13.0707,
+      "lon": 77.798,
+      "tiles": [
+        "rur_hoskote_0",
+        "rur_hoskote_1",
+        "rur_hoskote_2",
+        "rur_hoskote_3"
+      ]
+    }
+  }
+}

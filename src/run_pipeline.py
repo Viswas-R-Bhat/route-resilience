@@ -26,7 +26,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--image")
     ap.add_argument("--mask", help="use an existing binary mask and skip Phase 1")
-    ap.add_argument("--ckpt", default="C:/Users/VISWAS/route_data/runs/phase1_full/best.pt")
+    ap.add_argument("--ckpt", default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "best.pt"))
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
     ap.add_argument("--out", default="runs/pipeline")
     ap.add_argument("--thr", type=float, default=0.45)    # hysteresis SEED (confident) threshold; faint roads grow from it
