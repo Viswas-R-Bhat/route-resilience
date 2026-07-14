@@ -13,6 +13,6 @@ def mask_to_skeleton(binary_mask, min_size=80, close_kernel=5):
     b = binary_mask.astype(bool)
     if close_kernel:
         b = binary_closing(b, structure=np.ones((close_kernel, close_kernel)))
-    b = remove_small_objects(b, min_size=min_size)
+    b = remove_small_objects(b, max_size=min_size - 1)   # skimage >=0.26 API (removes <= max_size)
     skel = skeletonize(b)
     return skel.astype(np.uint8)

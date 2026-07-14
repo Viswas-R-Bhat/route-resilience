@@ -71,6 +71,7 @@ def export_geo(stem, label):
                stats=report.get("raw_graph", {}), connectivity=report.get("connectivity", {}),
                healed_bridges=report.get("healed_bridges", 0),
                healed_canopy=report.get("healed_canopy", 0), healed_geom=report.get("healed_geom", 0),
+               healed_trace=report.get("healed_trace", 0),
                scene_canopy_frac=report.get("scene_canopy_frac", 0.0),
                canopy_saturated=bool(report.get("canopy_saturated", False)),
                nodes=nodes, edges=edges,

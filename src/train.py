@@ -129,6 +129,8 @@ def main():
     ap.add_argument("--lr", type=float, help="override train.lr (use a low lr, e.g. 1e-4, for fine-tuning)")
     ap.add_argument("--train-dir", help="override data.train_dir")
     ap.add_argument("--val-dir", help="explicit held-out val dir (skips the random split; e.g. unseen-city tiles)")
+    ap.add_argument("--repeat", type=int, default=1,
+                    help="repeat the train list N times per epoch (small tile sets: each pass takes a different random crop)")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config))
@@ -161,7 +163,8 @@ def main():
             sys.exit(f"[ERROR] --val-dir {args.val_dir} has no *_sat.jpg/_mask.png pairs")
     else:
         tr_samples, va_samples = split_samples(samples, cfg["data"]["train_split"], cfg["seed"], limit)
-    print(f"Datasets [{args.datasets}]: {len(samples)} real tiles | train {len(tr_samples)} | "
+    tr_samples = tr_samples * max(1, args.repeat)
+    print(f"Datasets [{args.datasets}]: {len(samples)} real tiles | train {len(tr_samples)} (x{args.repeat}) | "
           f"val {len(va_samples)} | crop {crop} | bs {bs} | epochs {epochs} | device {device}")
 
     a = cfg["augment"]
