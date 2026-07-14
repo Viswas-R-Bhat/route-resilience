@@ -15,9 +15,26 @@ import http.server, socketserver, json, os, sys, subprocess, time, urllib.parse,
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB = os.path.join(ROOT, "web")
-ROUTE_PY = r"C:/Users/VISWAS/route_env/Scripts/python.exe"          # project venv (torch+cuda)
+
+# Detect virtual environment python dynamically
+venv_py = os.path.join(ROOT, ".venv", "bin", "python")
+if not os.path.exists(venv_py):
+    venv_py = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+if not os.path.exists(venv_py):
+    venv_py = r"C:/Users/VISWAS/route_env/Scripts/python.exe"
+if not os.path.exists(venv_py):
+    venv_py = sys.executable
+
+ROUTE_PY = venv_py
 CKPT = os.path.join(ROOT, "models", "best.pt")
-_LOCK = threading.Lock()   # serialize GPU pipeline runs
+
+try:
+    import torch
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+except ImportError:
+    DEVICE = "cpu"
+
+_LOCK = threading.Lock()   # serialize GPU/CPU pipeline runs
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -37,6 +54,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             grid = max(2, min(16, int(q.get("grid", ["8"])[0])))
         except Exception as e:
             return self._json({"error": f"bad params ({e})"}, 400)
+        print(f"\n[API Analyze] Search coordinates received -> Lat: {lat}, Lon: {lon}, Grid size: {grid}", flush=True)
         stem = "live_%d" % int(time.time() * 1000)
         t0 = time.time()
         with _LOCK:
@@ -59,9 +77,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             dem = ["--dem", "runs/geo/%s_dem.npy" % stem]
         except Exception:
             dem = []
+        tta = ["--no-tta"] if DEVICE == "cpu" else []
         sub(["src/run_pipeline.py", "--image", "runs/geo/%s_sat.png" % stem, "--ckpt", CKPT,
-             "--device", "cuda", "--out", "runs/geo", "--thr", "0.35", "--max-gap", "95", "--ang-tol", "50",
-             "--osm"] + dem)
+             "--device", DEVICE, "--out", "runs/geo", "--thr", "0.35", "--max-gap", "95", "--ang-tol", "50",
+             "--osm"] + dem + tta)
         sub(["src/export_web_geo.py", "--stem", stem, "--label", "Live · %.4f,%.4f" % (lat, lon), "--no-manifest"])
         # tidy heavy intermediates for ephemeral live tiles (page only needs web/data/<stem>.{json,jpg})
         if stem.startswith("live_"):
