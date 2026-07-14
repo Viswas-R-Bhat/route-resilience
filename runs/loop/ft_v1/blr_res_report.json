@@ -229,17 +229,18 @@
     ],
     "coverage": {
       "recall": 0.8342,
-      "precision": 0.4627,
-      "f1": 0.5952,
-      "buffer_px": 5
+      "precision": 0.6806,
+      "f1": 0.7496,
+      "buffer_px": 5,
+      "method": "centerline"
     },
     "path_length": {
-      "pairs_well_snapped": 150,
-      "routable_pairs": 145,
-      "routing_success": 0.9667,
-      "coverage_gap_rate": 0.3976,
-      "avg_path_length_error_pct": 16.56,
-      "median_path_length_error_pct": 6.57,
+      "pairs_well_snapped": 200,
+      "routable_pairs": 194,
+      "routing_success": 0.97,
+      "coverage_gap_rate": 0.3789,
+      "avg_path_length_error_pct": 21.01,
+      "median_path_length_error_pct": 6.76,
       "osm_road_km": 147.29
     }
   },

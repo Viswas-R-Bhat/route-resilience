@@ -119,16 +119,25 @@ def estimate_offset(osm_mask, model_mask, search=12, step=2):
 
 
 def coverage(osm_mask, model_mask, buffer=5):
-    """Buffered (relaxed) overlap of model mask vs OSM ground-truth roads."""
+    """Centerline coverage vs OSM ground truth (Wiedemann completeness/correctness).
+
+    Both legs compare CENTERLINES with a buffer tolerance, so road WIDTH doesn't bias the
+    score: a model that paints the true full-width surface of a correctly-found road must not
+    lose precision for it (the old full-mask precision capped ~0.5 once masks became
+    width-realistic). recall = completeness (OSM centerline near predicted road);
+    precision = correctness (predicted centerline near OSM road)."""
+    from skimage.morphology import skeletonize
     k = 2 * buffer + 1
     ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
-    o, m = osm_mask.astype(bool), model_mask.astype(bool)
-    o_near_m = o & cv2.dilate(model_mask, ker).astype(bool)     # OSM road within buffer of a prediction
-    m_near_o = m & cv2.dilate(osm_mask, ker).astype(bool)       # prediction within buffer of an OSM road
+    o = osm_mask.astype(bool)
+    sk = skeletonize(model_mask.astype(bool))
+    o_near_m = o & cv2.dilate(model_mask, ker).astype(bool)     # OSM centerline within buffer of a prediction
+    sk_near_o = sk & cv2.dilate(osm_mask, ker).astype(bool)     # predicted centerline within buffer of an OSM road
     recall = float(o_near_m.sum()) / max(1, int(o.sum()))
-    precision = float(m_near_o.sum()) / max(1, int(m.sum()))
+    precision = float(sk_near_o.sum()) / max(1, int(sk.sum()))
     f1 = 2 * recall * precision / max(1e-9, recall + precision)
-    return dict(recall=round(recall, 4), precision=round(precision, 4), f1=round(f1, 4), buffer_px=buffer)
+    return dict(recall=round(recall, 4), precision=round(precision, 4), f1=round(f1, 4),
+                buffer_px=buffer, method="centerline")
 
 
 def path_length_error(model_G, osm_G, W, H, res_m=None, n_pairs=200, max_snap_px=45, seed=42):

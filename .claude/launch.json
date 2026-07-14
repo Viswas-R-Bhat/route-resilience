@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "route-web",
-      "runtimeExecutable": "C:/Users/VISWAS/anaconda3/envs/route/python.exe",
+      "runtimeExecutable": "C:/Users/VISWAS/route_env/Scripts/python.exe",
       "runtimeArgs": ["src/server.py", "8766"],
       "port": 8766
     }

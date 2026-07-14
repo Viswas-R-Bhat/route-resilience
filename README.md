@@ -5,13 +5,28 @@
 Standard satellite road extraction breaks under tree canopy, shadows, and buildings, producing fragmented masks that are useless for routing. Route Resilience extracts roads with a context-aware model, **heals** the topology into a connected weighted graph, finds the **gatekeeper intersections** (single points of failure), and lets you **stress-test** the network — disable nodes (flood / accident / closure) and watch resilience, rerouting, and travel-time degrade live.
 
 ## Pipeline
-1. **Segmentation** — U-Net / ResNet34 (segmentation-models-pytorch), Dice + BCE + connectivity loss, synthetic-occlusion augmentation, 8-way D4 test-time augmentation.
+1. **Segmentation** — U-Net / ResNet34 (segmentation-models-pytorch), pre-trained on DeepGlobe and **domain-fine-tuned on India-wide Esri z18 imagery with OSM-supervised masks** (22 diverse sites: Kerala canopy, Rajasthan desert, plains, metros, planned grids, rural Karnataka; Dice + BCE + clDice topology loss, synthetic-occlusion augmentation, 8-way D4 TTA).
 2. **Skeletonization → graph** — morphological thinning + `sknw` → NetworkX weighted graph.
-3. **Topological healing** — Union-Find + MST + angular alignment bridge occlusion gaps.
-4. **Criticality + resilience** — betweenness-centrality gatekeepers; node-ablation Resilience Index, rerouting, and travel-time impact.
+3. **Probability-guided topological healing** — bridges follow least-cost paths through the model's soft output (faint road evidence under canopy), gated by Union-Find + angular alignment; open-ground bridges with zero image evidence are vetoed.
+4. **Criticality + resilience** — betweenness-centrality gatekeepers; node-ablation Resilience Index, rerouting, travel-time impact, flood-DEM stress test.
 
-## Validation (real held-out DeepGlobe, 934 tiles)
-Road **IoU 0.605** · Dice 0.754 · Relaxed-IoU 0.770 · Occlusion-recall 0.63 (U-Net/ResNet34 + D4 TTA, threshold-tuned). A multi-architecture soft-voting ensemble was evaluated and honestly reported as **no gain** (correlated same-encoder members) — see `runs/ensemble/FINAL_MODEL.md`.
+## Validation — deployment domain (5 held-out Bengaluru sectors vs OpenStreetMap)
+Measured by the OSM Topological-Accuracy benchmark (`src/osm_benchmark.py`, centerline
+completeness/correctness + routing fidelity). Training tiles exclude these sectors;
+model selection used only unseen-city validation tiles.
+
+| | v1 (DeepGlobe model) | **v2 (domain fine-tune + prob-healing)** |
+|---|---|---|
+| Road recall (completeness) | 0.62 | **0.88** |
+| Precision (correctness) | 0.78 | 0.72 |
+| F1 | 0.69 | **0.79** |
+| Routing success | 0.53 | **0.99** |
+| Median path-length error | 26.5 % | **6.9 %** |
+| Largest-connected-component | 0.70 | **0.995** |
+
+Reproduce: `python src/improve_loop.py --ckpt models/best.pt --tag mytest` (full scoreboards
+in `runs/loop/`). Prior DeepGlobe-domain metrics + the honest no-gain ensemble study:
+`runs/ensemble/FINAL_MODEL.md`. v1 checkpoint kept at `models/best_v1_deepglobe.pt`.
 
 ## Web app
 Premium dark dashboard (`web/`): a Leaflet map of the real road network at true lat/lon over satellite imagery, criticality heatmap, gatekeeper list, interactive stress-test slider, rerouting, and a **live "Analyze any location"** search that fetches imagery and runs the full pipeline on demand.

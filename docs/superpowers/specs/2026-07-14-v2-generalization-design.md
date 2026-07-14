@@ -62,3 +62,18 @@ compensation. The fix is training on the deployment domain.
   already estimates registration offset; QC gallery before training.
 - Overpass rate limits: on-disk cache + polite backoff.
 - Under-mapped OSM areas would teach "miss roads": skip tiles with near-zero OSM road density.
+
+## RESULTS (measured 2026-07-14, identical centerline protocol, 5 held-out sectors)
+| config | recall | precision | F1 | routing | med plerr | LCC |
+|---|---|---|---|---|---|---|
+| v1 baseline (orig healing) | 0.619 | 0.777 | 0.688 | 0.53 | 26.5% | 0.70 |
+| v1 + prob-healing | 0.619 | 0.777 | 0.688 | 0.769 | 40.4% | 0.867 |
+| **ft_v1 @ thr 0.35 (SHIPPED)** | **0.879** | 0.724 | **0.794** | **0.990** | **6.9%** | **0.995** |
+| ft_v1 @ thr 0.50 | 0.842 | 0.762 | 0.800 | 0.961 | 9.2% | 0.969 |
+
+Success criteria met: F1 +0.106 abs, routing +0.46 abs (targets were +0.10); no regression
+on blr_hsr (F1 0.745→0.824, routing 0.93→0.995). All 12 invariant tests green.
+Fine-tune: 10 epochs (early stop), best ep2, lr 1e-4, Dice+BCE+clDice, 86 train tiles ×8
+crops, val = 16 unseen-city tiles. Metric note: coverage switched to centerline
+completeness/correctness (Wiedemann) — the old full-mask precision penalized
+width-realistic masks; ALL configs re-scored under the same protocol (src/rescore_loops.py).

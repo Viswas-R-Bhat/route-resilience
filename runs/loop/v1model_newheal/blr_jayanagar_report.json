@@ -229,9 +229,10 @@
     ],
     "coverage": {
       "recall": 0.572,
-      "precision": 0.6696,
-      "f1": 0.617,
-      "buffer_px": 5
+      "precision": 0.805,
+      "f1": 0.6688,
+      "buffer_px": 5,
+      "method": "centerline"
     },
     "path_length": {
       "pairs_well_snapped": 200,
